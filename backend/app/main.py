@@ -36,6 +36,8 @@ origins = [
     "https://factoring1.vercel.app",
     "http://localhost:5173",
     "http://127.0.0.1:5173",
+    "http://5.9.77.167:5173",
+    "http://5.9.77.167:8003",
 ]
 
 app.add_middleware(
