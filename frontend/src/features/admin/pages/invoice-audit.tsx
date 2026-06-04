@@ -23,15 +23,39 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 
+type AdminOffer = {
+    status: string;
+    net_to_fi?: number;
+};
+
+type AdminInvoice = {
+    id: number;
+    invoice_number: string;
+    buyer_name: string;
+    total_amount: number;
+    created_at: string;
+    status: string;
+    credit_score?: number | null;
+    offers?: AdminOffer[];
+};
+
+type DisbursementInstruction = {
+    type?: "FI" | "SME";
+    amount: number;
+    account_number?: string;
+    content: string;
+    related_invoice_id?: number;
+};
+
 export function InvoiceAuditPage() {
     const queryClient = useQueryClient();
-    const [disburseData, setDisburseData] = useState<any>(null); // To store disbursement info
+    const [disburseData, setDisburseData] = useState<DisbursementInstruction | null>(null); // To store disbursement info
 
     const { data: invoices, isLoading } = useQuery({
         queryKey: ['admin-invoices-all'],
         queryFn: async () => {
             const res = await apiService.getAllInvoices();
-            return res.data;
+            return res.data as AdminInvoice[];
         }
     });
 
@@ -72,7 +96,7 @@ export function InvoiceAuditPage() {
                                 <TableCell colSpan={6} className="text-center p-8">Chưa có dữ liệu.</TableCell>
                             </TableRow>
                         ) : (
-                            invoices?.map((inv: any) => (
+                            invoices?.map((inv) => (
                                 <TableRow key={inv.id}>
                                     <TableCell className="font-medium">{inv.invoice_number}</TableCell>
                                     <TableCell>{inv.buyer_name}</TableCell>
@@ -101,7 +125,7 @@ export function InvoiceAuditPage() {
                                                         await apiService.confirmFunding(inv.id);
                                                         toast.success("Đã xác nhận tiền vào!");
                                                         queryClient.invalidateQueries({ queryKey: ['admin-invoices-all'] });
-                                                    } catch (e) {
+                                                    } catch {
                                                         toast.error("Lỗi cập nhật");
                                                     }
                                                 }}
@@ -121,7 +145,7 @@ export function InvoiceAuditPage() {
                                                         toast.success("Lệnh giải ngân đã sẵn sàng!");
                                                         setDisburseData({ ...res.data, related_invoice_id: inv.id }); // Open Modal with ID
                                                         queryClient.invalidateQueries({ queryKey: ['admin-invoices-all'] });
-                                                    } catch (e) {
+                                                    } catch {
                                                         toast.error("Lỗi khi tạo lệnh giải ngân");
                                                     }
                                                 }}
@@ -136,7 +160,7 @@ export function InvoiceAuditPage() {
                                                 size="sm"
                                                 className="bg-purple-600 hover:bg-purple-700 text-white"
                                                 onClick={() => {
-                                                    const offer = inv.offers?.find((o: any) => o.status === 'ACCEPTED');
+                                                    const offer = inv.offers?.find((o) => o.status === 'ACCEPTED');
                                                     // Fallback logic for legacy offers (0.5% Commission)
                                                     const amount = offer?.net_to_fi || (inv.total_amount * 0.995);
 
@@ -198,7 +222,7 @@ export function InvoiceAuditPage() {
                                         toast.success("Simulation Sent! Funds Transferred.");
                                         setDisburseData(null);
                                         await queryClient.invalidateQueries({ queryKey: ['admin-invoices-all'] });
-                                    } catch (e) {
+                                    } catch {
                                         toast.error("Simulation failed");
                                     }
                                 }}

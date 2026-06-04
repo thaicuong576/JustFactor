@@ -26,7 +26,7 @@ const LoginForm: React.FC<Props> = ({ onLogin, onBack }) => {
         setLoading(true);
         try {
             await onLogin(email, password, selectedRole);
-        } catch (err) {
+        } catch {
             alert("Sai thông tin đăng nhập");
         } finally {
             setLoading(false);

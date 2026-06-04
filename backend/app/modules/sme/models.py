@@ -15,6 +15,8 @@ class SME(Base):
     tax_code: Mapped[str] = mapped_column(String(20), unique=True, index=True, nullable=False)
     company_name: Mapped[str] = mapped_column(String(255), nullable=False)
     address: Mapped[str] = mapped_column(String, nullable=True)
+    company_website: Mapped[str] = mapped_column(String, nullable=True)
+    linkedin_url: Mapped[str] = mapped_column(String, nullable=True)
     
     # Thông tin nhạy cảm (Được MÃ HÓA theo Nghị định 13)
     legal_rep_name: Mapped[str] = mapped_column(EncryptedString, nullable=False) # Tên người đại diện
@@ -33,6 +35,12 @@ class SME(Base):
     bank_accounts = relationship("BankAccount", back_populates="sme")
 
     invoices = relationship("Invoice", back_populates="sme")
+    alternative_data_assessment = relationship(
+        "AlternativeDataAssessment",
+        back_populates="sme",
+        uselist=False,
+        cascade="all, delete-orphan",
+    )
     
     # Quan hệ ngược lại User
     user = relationship("User", back_populates="sme_profile")

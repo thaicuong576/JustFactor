@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { apiService } from "@/services/api";
+import { api, apiService } from "@/services/api";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Loader2, DollarSign } from "lucide-react";
@@ -14,12 +14,34 @@ import { Save, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import { DealDetailDrawer } from "../deal-detail-drawer";
 
+type FISummary = {
+    total_invested?: number;
+    projected_profit?: number;
+    active_offers_count?: number;
+};
+
+type PortfolioOffer = {
+    id: number;
+    status: string;
+    funding_amount: number;
+    net_to_fi: number;
+    invoice: {
+        id: number;
+        invoice_number: string;
+        status: string;
+        total_amount: number;
+        sme?: {
+            company_name?: string;
+        };
+    };
+};
+
 export function FIDashboard() {
     const { data: stats, isLoading } = useQuery({
         queryKey: ['fi-summary'],
         queryFn: async () => {
             const res = await apiService.getFISummary();
-            return res.data;
+            return res.data as FISummary;
         }
     });
 
@@ -57,7 +79,7 @@ export function FIPortfolio() {
         queryKey: ['my-offers'],
         queryFn: async () => {
             const res = await apiService.getMyOffers();
-            return res.data;
+            return res.data as PortfolioOffer[];
         }
     });
 
@@ -67,22 +89,22 @@ export function FIPortfolio() {
     if (isLoading) return <div className="p-10 flex justify-center"><Loader2 className="animate-spin text-blue-600" /></div>;
 
     // Filter Logic
-    const actionNeededDetails = offers?.filter((o: any) => o.status === 'ACCEPTED' && o.invoice.status === 'FINANCED');
+    const actionNeededDetails = offers?.filter((o) => o.status === 'ACCEPTED' && o.invoice.status === 'FINANCED');
     // Active Assets: Disbursed (Money is with SME)
-    const activeAssets = offers?.filter((o: any) =>
+    const activeAssets = offers?.filter((o) =>
         ['FUNDING_RECEIVED', 'DISBURSED'].includes(o.invoice.status) && o.status === 'ACCEPTED'
     );
     // Settlement: Repayment Received (Money is with Platform, waiting for Remittance)
-    const settlementAssets = offers?.filter((o: any) =>
+    const settlementAssets = offers?.filter((o) =>
         o.invoice.status === 'REPAYMENT_RECEIVED' && o.status === 'ACCEPTED'
     );
 
-    const pendingOffers = offers?.filter((o: any) => o.status === 'PENDING');
-    const historyDeals = offers?.filter((o: any) =>
+    const pendingOffers = offers?.filter((o) => o.status === 'PENDING');
+    const historyDeals = offers?.filter((o) =>
         o.invoice.status === 'CLOSED' || o.status === 'REJECTED' || o.status === 'EXPIRED'
     );
 
-    const renderDealCard = (offer: any, type: 'action' | 'asset' | 'pending' | 'history' | 'settlement') => (
+    const renderDealCard = (offer: PortfolioOffer, type: 'action' | 'asset' | 'pending' | 'history' | 'settlement') => (
         <Card key={offer.id} className="cursor-pointer hover:border-blue-500 hover:shadow-md transition-all group" onClick={() => setSelectedInvId(offer.invoice.id)}>
             <CardContent className="p-5 flex justify-between items-center">
                 <div className="flex items-start gap-4">
@@ -198,7 +220,7 @@ export function FIPortfolio() {
                         <div className="text-center py-12 bg-slate-50 rounded-2xl border border-dashed border-slate-200">
                             <p className="text-slate-500 font-medium">No actions required right now.</p>
                         </div>
-                    ) : actionNeededDetails?.map((o: any) => renderDealCard(o, 'action'))}
+                    ) : actionNeededDetails?.map((o) => renderDealCard(o, 'action'))}
                 </TabsContent>
 
                 <TabsContent value="assets" className="space-y-4 focus-visible:outline-none">
@@ -206,7 +228,7 @@ export function FIPortfolio() {
                         <div className="text-center py-12 bg-slate-50 rounded-2xl border border-dashed border-slate-200">
                             <p className="text-slate-500 font-medium">No active assets generating yield.</p>
                         </div>
-                    ) : activeAssets?.map((o: any) => renderDealCard(o, 'asset'))}
+                    ) : activeAssets?.map((o) => renderDealCard(o, 'asset'))}
                 </TabsContent>
 
                 <TabsContent value="settlement" className="space-y-4 focus-visible:outline-none">
@@ -214,15 +236,15 @@ export function FIPortfolio() {
                         <div className="text-center py-12 bg-slate-50 rounded-2xl border border-dashed border-slate-200">
                             <p className="text-slate-500 font-medium">No deals in settlement.</p>
                         </div>
-                    ) : settlementAssets?.map((o: any) => renderDealCard(o, 'settlement'))}
+                    ) : settlementAssets?.map((o) => renderDealCard(o, 'settlement'))}
                 </TabsContent>
 
                 <TabsContent value="pending" className="space-y-4 focus-visible:outline-none">
-                    {pendingOffers?.map((o: any) => renderDealCard(o, 'pending'))}
+                    {pendingOffers?.map((o) => renderDealCard(o, 'pending'))}
                 </TabsContent>
 
                 <TabsContent value="history" className="space-y-4 focus-visible:outline-none">
-                    {historyDeals?.map((o: any) => renderDealCard(o, 'history'))}
+                    {historyDeals?.map((o) => renderDealCard(o, 'history'))}
                 </TabsContent>
             </Tabs>
 
@@ -251,11 +273,9 @@ export function FISettings() {
     const handleSave = async () => {
         setSaving(true);
         try {
-            // Using generic post for now as we haven't updated api.ts type definition
-            // @ts-ignore
-            await apiService.client.put('/fi/me/risk-config', { risk_config: config });
+            await api.put('/fi/me/risk-config', { risk_config: config });
             toast.success("Risk appetite updated successfully");
-        } catch (error) {
+        } catch {
             toast.error("Failed to update settings");
         } finally {
             setSaving(false);

@@ -17,8 +17,33 @@ interface DealDetailDrawerProps {
     onOfferSuccess: () => void;
 }
 
+type DealDocument = {
+    name: string;
+    type: string;
+    path: string;
+};
+
+type DealDetails = {
+    invoice: {
+        id: number;
+        invoice_number: string;
+        total_amount: number;
+        buyer_name: string;
+        status: string;
+    };
+    sme: {
+        company_name?: string;
+        rating?: string;
+        score: number;
+        pd: number;
+        tax_code?: string;
+        address?: string;
+    };
+    documents: DealDocument[];
+};
+
 export function DealDetailDrawer({ invoiceId, onClose, onOfferSuccess }: DealDetailDrawerProps) {
-    const [data, setData] = useState<any>(null);
+    const [data, setData] = useState<DealDetails | null>(null);
     const [loading, setLoading] = useState(false);
     const [offerForm, setOfferForm] = useState({ rate: 12.0, amount: 0, tenor: 30 });
     const [submitting, setSubmitting] = useState(false);
@@ -28,8 +53,9 @@ export function DealDetailDrawer({ invoiceId, onClose, onOfferSuccess }: DealDet
             setLoading(true);
             apiService.getDealDetails(invoiceId)
                 .then(res => {
-                    setData(res.data);
-                    setOfferForm(prev => ({ ...prev, amount: res.data.invoice.total_amount }));
+                    const details = res.data as DealDetails;
+                    setData(details);
+                    setOfferForm(prev => ({ ...prev, amount: details.invoice.total_amount }));
                 })
                 .catch(() => toast.error("Failed to load deal details"))
                 .finally(() => setLoading(false));
@@ -50,7 +76,7 @@ export function DealDetailDrawer({ invoiceId, onClose, onOfferSuccess }: DealDet
             toast.success("Offer sent successfully!");
             onOfferSuccess();
             onClose();
-        } catch (error) {
+        } catch {
             toast.error("Failed to send offer");
         } finally {
             setSubmitting(false);
@@ -159,7 +185,7 @@ export function DealDetailDrawer({ invoiceId, onClose, onOfferSuccess }: DealDet
                         {/* --- DOCUMENTS TAB --- */}
                         <TabsContent value="documents" className="space-y-4">
                             <div className="grid grid-cols-1 gap-3">
-                                {data.documents.map((doc: any, idx: number) => (
+                                {data.documents.map((doc, idx) => (
                                     <div key={idx} className="flex items-center justify-between p-4 border rounded-xl hover:bg-slate-50 transition-colors">
                                         <div className="flex items-center gap-3">
                                             <div className="bg-slate-100 p-2 rounded-lg">
@@ -377,7 +403,7 @@ export function DealDetailDrawer({ invoiceId, onClose, onOfferSuccess }: DealDet
 }
 
 function PaymentSection({ invoiceId, role = 'FI' }: { invoiceId: number, role?: 'SME' | 'FI' }) {
-    const [kit, setKit] = useState<any>(null);
+    const [kit, setKit] = useState<unknown>(null);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {

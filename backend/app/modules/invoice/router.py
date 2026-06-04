@@ -44,6 +44,8 @@ async def upload_invoice_package(
 
     except ValueError as e:
         raise HTTPException(status_code=400, detail=f"Invalid XML Data: {str(e)}")
+    except HTTPException:
+        raise
     except Exception as e:
         import traceback
         traceback.print_exc()

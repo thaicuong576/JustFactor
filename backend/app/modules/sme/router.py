@@ -58,6 +58,8 @@ async def get_sme_full_profile(
         "company_name": sme.company_name,
         "tax_code": sme.tax_code,
         "address": sme.address,
+        "company_website": sme.company_website,
+        "linkedin_url": sme.linkedin_url,
         "legal_rep_name": sme.legal_rep_name, # SQLAlchemy TypeDecorator tự giải mã
         "phone_number": sme.phone_number,
         "created_at": sme.created_at,

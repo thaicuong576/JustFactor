@@ -9,6 +9,7 @@ import app.modules.scoring.models
 import app.modules.trading.models
 import app.modules.payment.models 
 import app.modules.invoice.models
+import app.modules.alternative_data.models
 import app.modules.sme.models
 import app.modules.fi.models
 import app.modules.auth.models

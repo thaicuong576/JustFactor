@@ -36,6 +36,14 @@ export interface User {
     full_name: string;
     role: UserRole;
     is_active: boolean;
+    sme_profile?: {
+        id: number;
+        tax_code: string;
+        company_name: string;
+        address?: string | null;
+        company_website?: string | null;
+        linkedin_url?: string | null;
+    } | null;
 }
 
 export interface Invoice {
@@ -78,6 +86,8 @@ export interface SMERegisterPayload {
         tax_code: string;
         company_name: string;
         address: string;
+        company_website?: string;
+        linkedin_url?: string;
         legal_rep_name: string;
         legal_rep_cccd: string;
         phone_number: string;
@@ -86,4 +96,34 @@ export interface SMERegisterPayload {
         cccd_back_path?: string;
         portrait_path?: string;
     };
+}
+
+export interface AlternativeDataComponent {
+    label: string;
+    score: number;
+    max_score: number;
+    confidence: number;
+    evidence?: string | null;
+    source?: string | null;
+}
+
+export interface AlternativeDataScorecard {
+    status: string;
+    alternative_data_score?: number;
+    fit_score?: number;
+    confidence_avg?: number;
+    public_summary?: string | null;
+    error_message?: string | null;
+    last_run_at?: string | null;
+    sources?: string[];
+    scorecard?: {
+        alternative_data_score?: number;
+        fit_score?: number;
+        confidence_avg?: number;
+        components?: Record<string, AlternativeDataComponent>;
+        public_summary?: string;
+        reasoning?: string;
+        sources?: string[];
+    };
+    raw_evidence?: Record<string, unknown>;
 }

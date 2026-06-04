@@ -4,6 +4,7 @@ from datetime import datetime
 from app.modules.invoice import models as inv_models
 from app.modules.scoring import models as score_models
 from app.modules.sme import models as sme_models
+from app.modules.alternative_data import models as alt_models
 
 class ScoringService:
     def __init__(self, db: AsyncSession):
@@ -79,13 +80,37 @@ class ScoringService:
         if invoice.total_amount and invoice.total_amount > 10_000_000_000:
              score_invoice -= 50
 
-        # --- KHỐI 3: LỊCH SỬ SME (HISTORY) - Max 200đ ---
-        # Input: "Lịch sử giao dịch SME" -> MVP dùng Tuổi đời doanh nghiệp
-        score_sme = 0
-        # Giả sử tax_code chứa năm thành lập (Logic giả định cho MVP)
-        # Thực tế cần API Tổng cục thuế trả về ngày thành lập
-        # Ở đây ta mặc định cho 100 điểm khởi tạo
-        score_sme = 100 
+        # --- KHỐI 3: ALTERNATIVE DATA SME - Max 200đ ---
+        # Input: website, LinkedIn, public company footprint, source confidence
+        alt_result = await self.db.execute(
+            select(alt_models.AlternativeDataAssessment).where(
+                alt_models.AlternativeDataAssessment.sme_id == invoice.sme_id
+            )
+        )
+        alt_assessment = alt_result.scalar_one_or_none()
+        if alt_assessment and alt_assessment.status == alt_models.AlternativeDataStatus.COMPLETED:
+            alt_scorecard = alt_assessment.scorecard or {}
+            alt_components = alt_scorecard.get("components", {})
+            if not alt_components and alt_scorecard.get("confidence_breakdown"):
+                alt_components = alt_scorecard["confidence_breakdown"]
+            score_sme = alt_assessment.alternative_data_score
+            alt_details = {
+                "status": alt_assessment.status.value,
+                "alternative_data_score": alt_assessment.alternative_data_score,
+                "fit_score": alt_assessment.fit_score,
+                "confidence_avg": alt_assessment.confidence_avg,
+                "components": alt_components,
+            }
+        else:
+            score_sme = 100
+            alt_details = {
+                "status": alt_assessment.status.value if alt_assessment else "NOT_RUN",
+                "alternative_data_score": score_sme,
+                "fit_score": 5.0,
+                "confidence_avg": 0.0,
+                "components": {},
+                "note": "Neutral alternative data score used while assessment is unavailable.",
+            }
 
         # --- KHỐI 4: TÓM TẮT TÍN DỤNG (CIC) - Max 100đ ---
         # Input: "Tóm tắt tín dụng" -> MVP dùng Mock
@@ -122,7 +147,8 @@ class ScoringService:
             existing_score.score_details = {
                 "buyer_score": score_buyer,
                 "invoice_score": score_invoice,
-                "sme_score": score_sme,
+                "alternative_data_score": score_sme,
+                "alternative_data": alt_details,
                 "cic_score": score_cic
             }
             existing_score.explanation = explanation
@@ -138,7 +164,8 @@ class ScoringService:
                 score_details={
                     "buyer_score": score_buyer,
                     "invoice_score": score_invoice,
-                    "sme_score": score_sme,
+                    "alternative_data_score": score_sme,
+                    "alternative_data": alt_details,
                     "cic_score": score_cic
                 },
                 explanation=explanation

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { apiService } from '../services/api.ts';
 import { ChevronLeft, Upload, CheckCircle } from 'lucide-react';
+import type { SMERegisterPayload } from '../types';
 
 interface RegistrationFormProps {
     onComplete: () => void;
@@ -58,7 +59,7 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ onComplete, onCance
         setLoading(true);
         try {
             // Bước 2: Gửi JSON tổng hợp (gồm các path ảnh) sang API Register
-            const payload = {
+            const payload: SMERegisterPayload = {
                 user: { email: formData.email, full_name: formData.full_name, password: formData.password },
                 sme: {
                     tax_code: formData.tax_code, company_name: formData.company_name,
@@ -73,8 +74,9 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ onComplete, onCance
             await apiService.registerSME(payload);
             alert("Đăng ký thành công! Vui lòng chờ Admin duyệt tài khoản.");
             onComplete();
-        } catch (err: any) {
-            alert("Lỗi đăng ký: " + (err.response?.data?.detail || err.message));
+        } catch (err) {
+            const message = err instanceof Error ? err.message : "Unknown error";
+            alert("Lỗi đăng ký: " + message);
         } finally {
             setLoading(false);
         }

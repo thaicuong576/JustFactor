@@ -19,6 +19,8 @@ class SMEFullProfileDTO(BaseModel):
     company_name: str
     tax_code: str
     address: Optional[str]
+    company_website: Optional[str] = None
+    linkedin_url: Optional[str] = None
     legal_rep_name: str # Đã giải mã
     phone_number: str   # Đã giải mã
     

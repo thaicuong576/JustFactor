@@ -15,6 +15,8 @@ class SMECreateProfile(BaseModel):
     tax_code: str = Field(..., description="Mã số thuế")
     company_name: str
     address: Optional[str] = None
+    company_website: Optional[str] = None
+    linkedin_url: Optional[str] = None
     # Các trường nhạy cảm (Frontend gửi plain text, Backend tự mã hóa khi lưu)
     legal_rep_name: str
     legal_rep_cccd: str
@@ -50,6 +52,8 @@ class SMEProfileResponse(BaseModel):
     tax_code: str
     company_name: str
     address: Optional[str] = None
+    company_website: Optional[str] = None
+    linkedin_url: Optional[str] = None
     legal_rep_name: str
     legal_rep_cccd: str
     phone_number: str

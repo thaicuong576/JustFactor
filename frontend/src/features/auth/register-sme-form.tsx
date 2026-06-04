@@ -11,6 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { apiService } from "@/services/api"
+import type { SMERegisterPayload } from "@/types"
 
 // Schema cho thông tin tài khoản & công ty
 const companySchema = z.object({
@@ -97,7 +98,7 @@ export function RegisterSMEForm({ onSuccess, onCancel }: RegisterSMEFormProps) {
 
         setLoading(true)
         try {
-            const payload = {
+            const payload: SMERegisterPayload = {
                 user: {
                     email: values.email,
                     full_name: values.full_name,
@@ -119,23 +120,27 @@ export function RegisterSMEForm({ onSuccess, onCancel }: RegisterSMEFormProps) {
             await apiService.registerSME(payload)
             toast.success("Đăng ký thành công! Đang chờ duyệt.")
             onSuccess()
-        } catch (err: any) {
+        } catch (err) {
             console.error("Registration Error:", err);
             let errorMessage = "Đăng ký thất bại, vui lòng thử lại.";
-            
-            if (err.response) {
-                const data = err.response.data;
-                const status = err.response.status;
+
+            const apiError = err as { response?: { data?: { detail?: unknown }; status?: number }; message?: string };
+            if (apiError.response) {
+                const data = apiError.response.data;
+                const status = apiError.response.status;
 
                 if (status === 422 && Array.isArray(data.detail)) {
                      // Handle Validation Errors (FastAPI default)
-                     errorMessage = "Lỗi dữ liệu: " + data.detail.map((e: any) => `${e.loc.join('.')} ${e.msg}`).join(', ');
+                     errorMessage = "Lỗi dữ liệu: " + data.detail.map((e) => {
+                         const validationError = e as { loc?: Array<string | number>; msg?: string };
+                         return `${validationError.loc?.join('.') || 'field'} ${validationError.msg || ''}`;
+                     }).join(', ');
                 } else if (data?.detail) {
                     // Handle Standard HTTP Exceptions (400, 401, 403, etc.)
                     errorMessage = `Lỗi: ${data.detail}`;
                 }
-            } else if (err.message) {
-                 errorMessage = err.message;
+            } else if (apiError.message) {
+                 errorMessage = apiError.message;
             }
 
             toast.error(errorMessage);
@@ -145,7 +150,7 @@ export function RegisterSMEForm({ onSuccess, onCancel }: RegisterSMEFormProps) {
     }
 
     return (
-        <Card className="w-full max-w-2xl mx-auto shadow-xl">
+        <Card className="w-full border-slate-200 shadow-xl shadow-slate-200/70">
             <CardHeader>
                 <CardTitle className="text-2xl text-blue-700">Đăng ký Tài khoản SME (Bước {step}/2)</CardTitle>
                 <CardDescription>Cung cấp thông tin doanh nghiệp để tham gia sàn giao dịch</CardDescription>
@@ -166,11 +171,11 @@ export function RegisterSMEForm({ onSuccess, onCancel }: RegisterSMEFormProps) {
                                         <Label className="text-base font-semibold text-slate-700">{item.label}</Label>
                                         <span className="text-xs text-slate-500 font-medium">{item.sub}</span>
                                     </div>
-                                    <div className={`border-2 border-dashed rounded-xl p-6 flex flex-col items-center justify-center gap-3 transition-colors ${uploadedFiles[item.key] ? 'border-green-500 bg-green-50' : 'border-slate-300 hover:bg-slate-50'
+                                    <div className={`min-h-40 border-2 border-dashed rounded-2xl p-6 flex flex-col items-center justify-center gap-3 transition-colors ${uploadedFiles[item.key] ? 'border-emerald-500 bg-emerald-50' : 'border-slate-300 hover:bg-slate-50'
                                         }`}>
                                         {uploadedFiles[item.key] ? (
                                             <div className="flex flex-col items-center">
-                                                <div className="text-green-600 flex items-center gap-2 text-sm font-bold mb-2">
+                                                <div className="text-emerald-700 flex items-center gap-2 text-sm font-bold mb-2">
                                                     <CheckCircle size={20} /> Đã tải lên
                                                 </div>
                                                 <p className="text-xs text-slate-600 font-medium mb-3 max-w-[150px] truncate text-center">
@@ -200,7 +205,7 @@ export function RegisterSMEForm({ onSuccess, onCancel }: RegisterSMEFormProps) {
                         </div>
                         <div className="flex justify-between pt-4">
                             <Button variant="ghost" onClick={onCancel}>Hủy</Button>
-                            <Button onClick={() => {
+                            <Button size="lg" onClick={() => {
                                 const missingFiles = [
                                     'business_license',
                                     'cccd_front',
@@ -264,10 +269,10 @@ export function RegisterSMEForm({ onSuccess, onCancel }: RegisterSMEFormProps) {
                         </div>
 
                         <div className="flex justify-between pt-6">
-                            <Button type="button" variant="outline" onClick={() => setStep(1)}>
+                            <Button type="button" variant="outline" size="lg" onClick={() => setStep(1)}>
                                 <ArrowLeft className="mr-2 h-4 w-4" /> Quay lại
                             </Button>
-                            <Button type="submit" disabled={loading} className="px-8">
+                            <Button type="submit" disabled={loading} size="lg" className="px-8">
                                 {loading ? <Loader2 className="animate-spin" /> : "Hoàn tất đăng ký"}
                             </Button>
                         </div>

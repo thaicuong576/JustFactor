@@ -15,15 +15,36 @@ import {
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Check, Eye, FileText } from "lucide-react";
 
+type PendingUser = {
+    id: number;
+    email: string;
+    role: string;
+    sme_profile?: {
+        company_name?: string;
+        tax_code?: string;
+        address?: string;
+        legal_rep_name?: string;
+        legal_rep_cccd?: string;
+        phone_number?: string;
+        business_license_path?: string;
+        cccd_front_path?: string;
+        cccd_back_path?: string;
+        portrait_path?: string;
+    };
+    fi_profile?: {
+        name?: string;
+    };
+};
+
 export function UserApprovalPage() {
     const queryClient = useQueryClient();
-    const [selectedUser, setSelectedUser] = useState<any>(null);
+    const [selectedUser, setSelectedUser] = useState<PendingUser | null>(null);
 
     const { data: users, isLoading } = useQuery({
         queryKey: ['admin-users-pending'],
         queryFn: async () => {
             const res = await apiService.getPendingUsers();
-            return res.data;
+            return res.data as PendingUser[];
         }
     });
 
@@ -74,7 +95,7 @@ export function UserApprovalPage() {
                                 </TableCell>
                             </TableRow>
                         ) : (
-                            users?.map((user: any) => (
+                            users?.map((user) => (
                                 <TableRow key={user.id} className="hover:bg-slate-50">
                                     <TableCell className="font-medium text-slate-700">{user.email}</TableCell>
                                     <TableCell>

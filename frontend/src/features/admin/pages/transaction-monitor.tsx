@@ -9,12 +9,21 @@ import {
     TableRow,
 } from "@/components/ui/table";
 
+type TransactionLog = {
+    id: number;
+    transaction_date: string;
+    transfer_type: "in" | "out" | string;
+    transfer_amount: number;
+    content: string;
+    account_number: string;
+};
+
 export function TransactionMonitorPage() {
     const { data: logs, isLoading } = useQuery({
         queryKey: ['admin-transactions'],
         queryFn: async () => {
             const res = await apiService.getTransactionLogs();
-            return res.data;
+            return res.data as TransactionLog[];
         }
     });
 
@@ -35,7 +44,7 @@ export function TransactionMonitorPage() {
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {logs?.map((log: any) => (
+                        {logs?.map((log) => (
                             <TableRow key={log.id}>
                                 <TableCell>{new Date(log.transaction_date).toLocaleString()}</TableCell>
                                 <TableCell className={log.transfer_type === 'in' ? 'text-green-600 font-bold' : 'text-red-500 font-bold'}>

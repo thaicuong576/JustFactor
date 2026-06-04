@@ -1,0 +1,58 @@
+version: "3.8"
+
+services:
+  backend:
+    build:
+      context: ./repo
+      dockerfile: ../Dockerfile.backend
+    env_file:
+      - .env
+    volumes:
+      - ./repo/backend:/app/backend:cached
+      - ./data/uploads:/app/backend/storage/uploads
+      - backend_cache:/root/.cache
+      - playwright_cache:/ms-playwright
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+      - redis
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./repo
+      dockerfile: ../Dockerfile.frontend
+    env_file:
+      - .env
+    volumes:
+      - ./repo/frontend:/app/frontend:cached
+      - frontend_node_modules:/app/frontend/node_modules
+    ports:
+      - "5173:5173"
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-dev}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-devpass}
+      POSTGRES_DB: ${POSTGRES_DB:-school_temp}
+    volumes:
+      - ./data/db:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
+
+volumes:
+  backend_cache:
+  frontend_node_modules:
+  playwright_cache:

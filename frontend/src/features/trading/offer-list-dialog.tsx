@@ -77,7 +77,7 @@ export function OfferListDialog({ invoice, open, onOpenChange }: OfferListDialog
                                 </div>
                             ) :
                                 offers?.map((offer) => (
-                                    <div key={offer?.id || Math.random()} className="relative group bg-white border border-slate-200 hover:border-blue-300 p-5 rounded-2xl shadow-sm hover:shadow-md transition-all">
+                                    <div key={offer.id} className="relative group bg-white border border-slate-200 hover:border-blue-300 p-5 rounded-2xl shadow-sm hover:shadow-md transition-all">
                                         <div className="absolute top-4 right-4">
                                             <Badge variant={offer?.status === 'ACCEPTED' ? 'success' : 'secondary'} className="uppercase text-[10px] tracking-wider">
                                                 {offer?.status || 'PENDING'}

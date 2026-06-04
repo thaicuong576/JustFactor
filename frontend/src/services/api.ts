@@ -1,7 +1,14 @@
 import axios from 'axios';
+import type { SMERegisterPayload } from '@/types';
 
-// Auto-detect environment based on hostname
-const isLocal = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
+// Auto-detect local dev, including LAN IPs used by Vite --host.
+const hostname = window.location.hostname;
+const isLocal =
+    hostname === "localhost" ||
+    hostname === "127.0.0.1" ||
+    hostname.startsWith("192.168.") ||
+    hostname.startsWith("10.") ||
+    /^172\.(1[6-9]|2\d|3[0-1])\./.test(hostname);
 export const API_URL = import.meta.env.VITE_API_URL || (isLocal ? "http://localhost:8000/api/v1" : "https://factoring.onrender.com/api/v1");
 
 export const api = axios.create({
@@ -34,7 +41,7 @@ export const apiService = {
     getMe: () => api.get('/auth/me'),
 
     // Auth
-    registerSME: (data: any) => api.post('/auth/register/sme', data),
+    registerSME: (data: SMERegisterPayload) => api.post('/auth/register/sme', data),
     uploadKYC: async (file: File) => {
         const fd = new FormData();
         fd.append('file', file);
@@ -50,11 +57,13 @@ export const apiService = {
         headers: { 'Content-Type': 'multipart/form-data' }
     }),
     calculateScore: (id: number) => api.post(`/scoring/calculate/${id}`),
+    getAlternativeData: (smeId: number) => api.get(`/alternative-data/sme/${smeId}`),
+    recalculateAlternativeData: (smeId: number) => api.post(`/alternative-data/sme/${smeId}/recalculate`),
 
     // Trading
     getTradingInvoices: () => api.get('/trading/marketplace'),
     getDealDetails: (id: number) => api.get(`/trading/deals/${id}`),
-    makeOffer: (data: any) => api.post('/trading/offers', data),
+    makeOffer: (data: { invoice_id: number; interest_rate: number; funding_amount: number; tenor_days: number; terms?: string }) => api.post('/trading/offers', data),
     getOffers: (invoiceId: number) => api.get(`/trading/offers?invoice_id=${invoiceId}`),
     getMyOffers: () => api.get('/trading/offers'),
     acceptOffer: (offerId: number) => api.post(`/trading/offers/${offerId}/accept`),
