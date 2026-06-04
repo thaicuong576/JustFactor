@@ -85,6 +85,13 @@ function RawEvidencePanel({ rawEvidence }: { rawEvidence: Record<string, unknown
     const unknownKeys = Object.keys(rawEvidence).filter((k) => !knownKeys.includes(k));
 
     const renderValue = (key: string, value: unknown) => {
+        if (key === "llm_raw_response" && typeof value === "object" && value !== null) {
+            return (
+                <pre className="text-xs font-mono text-slate-700 whitespace-pre-wrap break-words leading-relaxed max-h-64 overflow-y-auto bg-slate-100 rounded-lg p-2 border border-slate-200">
+                    {JSON.stringify(value, null, 2)}
+                </pre>
+            );
+        }
         if (Array.isArray(value)) {
             if (value.length === 0) return <span className="text-xs italic text-slate-400">(empty)</span>;
             return (
