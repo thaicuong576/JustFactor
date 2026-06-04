@@ -105,7 +105,9 @@ export function FIMarketplaceRedesign() {
                                     <div className="text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Hóa đơn #{invoice.invoice_number}</div>
                                     <h3 className="mt-2 text-2xl font-black text-slate-950">{formatVND(invoice.total_amount)}</h3>
                                 </div>
-                                <Badge variant="outline" className="bg-amber-50 text-amber-800 border-amber-200/50">Score {invoice.credit_score || invoice.grade || "B"}</Badge>
+                                <Badge variant="outline" className="bg-amber-50 text-amber-800 border-amber-200/50">
+                                    {invoice.grade ? `Hạng ${invoice.grade}` : invoice.credit_score ? `Score ${invoice.credit_score}` : "Chưa chấm"}
+                                </Badge>
                             </div>
                             <div className="mb-5 rounded-2xl bg-slate-50 p-4">
                                         <div className="text-xs font-bold uppercase tracking-[0.12em] text-slate-500">Bên mua</div>

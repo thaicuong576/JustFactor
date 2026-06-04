@@ -46,7 +46,8 @@ async def get_marketplace_feed(
 
     # Nạp thêm credit_score nếu cần hiển thị điểm trên sàn
     stmt = select(inv_models.Invoice).options(
-        selectinload(inv_models.Invoice.sme) # Nạp sẵn SME để lấy tên công ty
+        selectinload(inv_models.Invoice.sme),
+        selectinload(inv_models.Invoice.credit_score)
     ).where(
         inv_models.Invoice.status.in_([
             inv_models.InvoiceStatus.VERIFIED, 
@@ -59,6 +60,7 @@ async def get_marketplace_feed(
     
     data = []
     for inv in invoices:
+        cs = inv.credit_score
         data.append({
             "id": inv.id,
             "invoice_number": inv.invoice_number,
@@ -68,6 +70,8 @@ async def get_marketplace_feed(
             "debtor_name": inv.buyer_name,
             "issue_date": inv.issue_date,
             "status": inv.status,
+            "credit_score": cs.total_score if cs else None,
+            "grade": cs.grade.value if cs else None,
         })
         
     return data
