@@ -96,11 +96,11 @@ class InvoiceVerificationService:
             }
             
             try:
-                print(f"🔍 Calling VietQR: {url}") # Log URL để debug
+                print(f"DEBUG: Calling VietQR: {url}") # Log URL để debug
                 async with httpx.AsyncClient() as client:
                     response = await client.get(url, headers=headers, timeout=10.0)
                 
-                print(f"🔍 VietQR Response: {response.status_code} - {response.text[:100]}...") # Log kết quả
+                print(f"DEBUG: VietQR Response: {response.status_code} - {response.text[:100]}...") # Log kết quả
 
                 if response.status_code == 200:
                     data = response.json()
@@ -117,5 +117,5 @@ class InvoiceVerificationService:
                     return f"API_ERROR_{response.status_code}"
                     
             except Exception as e:
-                print(f"❌ VietQR Check Exception: {str(e)}")
+                print(f"ERROR: VietQR Check Exception: {str(e)}")
                 return "API_ERROR"

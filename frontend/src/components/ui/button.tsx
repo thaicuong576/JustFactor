@@ -1,28 +1,30 @@
+/* eslint-disable react-refresh/only-export-components */
 import * as React from "react"
+import { Slot } from "@radix-ui/react-slot"
 import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "@/lib/utils"
 
 const buttonVariants = cva(
-    "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
+    "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-xl text-sm font-bold transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 active:translate-y-px disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
     {
         variants: {
             variant: {
                 default:
-                    "bg-blue-600 text-white shadow hover:bg-blue-600/90",
+                    "bg-teal-700 text-white shadow-sm shadow-teal-900/20 hover:bg-teal-800",
                 destructive:
-                    "bg-red-500 text-white shadow-sm hover:bg-red-500/90",
+                    "bg-red-600 text-white shadow-sm hover:bg-red-700",
                 outline:
-                    "border border-slate-200 bg-white shadow-sm hover:bg-slate-100 hover:text-slate-900",
+                    "border border-slate-300 bg-white text-slate-800 shadow-sm hover:border-teal-500/50 hover:bg-teal-50 hover:text-slate-950",
                 secondary:
-                    "bg-slate-100 text-slate-900 shadow-sm hover:bg-slate-100/80",
-                ghost: "hover:bg-slate-100 hover:text-slate-900",
-                link: "text-slate-900 underline-offset-4 hover:underline",
+                    "bg-slate-950 text-white shadow-sm hover:bg-slate-800",
+                ghost: "text-slate-600 hover:bg-teal-50 hover:text-teal-800",
+                link: "text-teal-700 underline-offset-4 hover:underline",
             },
             size: {
-                default: "h-9 px-4 py-2",
-                sm: "h-8 rounded-md px-3 text-xs",
-                lg: "h-10 rounded-md px-8",
-                icon: "h-9 w-9",
+                default: "h-10 px-4 py-2",
+                sm: "h-8 rounded-lg px-3 text-xs",
+                lg: "h-12 rounded-xl px-6",
+                icon: "h-10 w-10",
             },
         },
         defaultVariants: {
@@ -40,10 +42,7 @@ export interface ButtonProps
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     ({ className, variant, size, asChild = false, ...props }, ref) => {
-        // Requires @radix-ui/react-slot if asChild is true. For now simplification:
-        // If we don't have radix-slot installed, we can ignore asChild logic or install it.
-        // Planning: I'll skip dynamic slot for now since I didn't install radix slot, and just use button.
-        const Comp = "button"
+        const Comp = asChild ? Slot : "button"
         return (
             <Comp
                 className={cn(buttonVariants({ variant, size, className }))}

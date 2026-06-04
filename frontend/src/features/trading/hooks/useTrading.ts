@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import { apiService } from "@/services/api";
 import type { Invoice, Offer } from "@/types";
 
@@ -21,9 +22,9 @@ export const useMakeOffer = () => {
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['trading-invoices'] });
-            alert("Đã gửi Offer thành công!");
+            toast.success("Đã gửi đề nghị tài trợ.");
         },
-        onError: () => alert("Gửi Offer thất bại")
+        onError: () => toast.error("Không thể gửi đề nghị tài trợ.")
     });
 };
 
@@ -48,7 +49,7 @@ export const useAcceptOffer = () => {
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['invoices'] });
             queryClient.invalidateQueries({ queryKey: ['offers'] });
-            alert("Đã chấp nhận Offer! Hợp đồng đang được tạo.");
+            toast.success("Đã chấp nhận đề nghị. Hợp đồng đang được tạo.");
         }
     });
 };

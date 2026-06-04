@@ -68,9 +68,12 @@ export function LoginForm({ onLoginSuccess, onRegisterClick }: LoginFormProps) {
             }
 
             onLoginSuccess(token, values.email, role)
-        } catch (err: any) {
+        } catch (err) {
             console.error("Login error:", err);
-            setError("Đăng nhập thất bại. Kiểm tra lại thông tin. (" + (err.response?.status || 'Net') + ")")
+            const status = typeof err === "object" && err !== null && "response" in err
+                ? (err as { response?: { status?: number } }).response?.status
+                : undefined;
+            setError("Đăng nhập thất bại. Kiểm tra lại thông tin. (" + (status || 'Net') + ")")
             localStorage.removeItem("access_token"); // Clear invalid token
         } finally {
             setLoading(false)
@@ -78,11 +81,11 @@ export function LoginForm({ onLoginSuccess, onRegisterClick }: LoginFormProps) {
     }
 
     return (
-        <div className="flex items-center justify-center min-h-[80vh]">
-            <Card className="w-full max-w-md shadow-2xl">
-                <CardHeader className="space-y-1">
+        <div className="w-full">
+            <Card className="border-slate-200 shadow-xl shadow-slate-200/70">
+                <CardHeader className="space-y-1 pb-4">
                     <CardTitle className="text-2xl font-bold text-center text-blue-700">Đăng nhập JUSTFACTOR</CardTitle>
-                    <CardDescription className="text-center">
+                    <CardDescription className="font-medium">
                         Nhập email và mật khẩu của bạn
                     </CardDescription>
                 </CardHeader>
@@ -111,9 +114,9 @@ export function LoginForm({ onLoginSuccess, onRegisterClick }: LoginFormProps) {
                             )}
                         </div>
 
-                        {error && <p className="text-sm font-medium text-red-600 text-center">{error}</p>}
+                        {error && <p className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm font-semibold text-red-700">{error}</p>}
 
-                        <Button className="w-full font-bold text-md" type="submit" disabled={loading}>
+                        <Button className="w-full" size="lg" type="submit" disabled={loading}>
                             {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <LogIn className="mr-2 h-4 w-4" />}
                             Đăng nhập
                         </Button>
@@ -127,7 +130,7 @@ export function LoginForm({ onLoginSuccess, onRegisterClick }: LoginFormProps) {
                             </div>
                         </div>
 
-                        <Button variant="outline" type="button" className="w-full" onClick={onRegisterClick}>
+                        <Button variant="outline" type="button" size="lg" className="w-full" onClick={onRegisterClick}>
                             Đăng ký tài khoản SME
                         </Button>
 

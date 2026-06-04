@@ -1,5 +1,5 @@
 from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from app.core.database import get_db
@@ -22,6 +22,7 @@ from fastapi.responses import FileResponse
 import uuid
 from app.modules.auth.models import User, UserRole
 from sqlalchemy.orm import selectinload
+from app.modules.alternative_data.services import run_alternative_data_assessment_task
 
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
@@ -59,7 +60,11 @@ async def get_current_user(token: str = Depends(oauth2_scheme), db: AsyncSession
 
 
 @router.post("/register/sme", response_model=auth_schemas.UserResponse)
-async def register_sme(payload: auth_schemas.RegisterSMERequest, db: AsyncSession = Depends(get_db)):
+async def register_sme(
+    payload: auth_schemas.RegisterSMERequest,
+    background_tasks: BackgroundTasks,
+    db: AsyncSession = Depends(get_db),
+):
     # 1. Check email exists
     print(f"DEBUG: Registering SME - Checking email {payload.user.email}")
     result = await db.execute(select(auth_models.User).where(auth_models.User.email == payload.user.email))
@@ -101,6 +106,8 @@ async def register_sme(payload: auth_schemas.RegisterSMERequest, db: AsyncSessio
         tax_code=payload.sme.tax_code,
         company_name=payload.sme.company_name,
         address=payload.sme.address,
+        company_website=payload.sme.company_website,
+        linkedin_url=payload.sme.linkedin_url,
         legal_rep_name=payload.sme.legal_rep_name,
         legal_rep_cccd=payload.sme.legal_rep_cccd,
         phone_number=payload.sme.phone_number,
@@ -112,7 +119,7 @@ async def register_sme(payload: auth_schemas.RegisterSMERequest, db: AsyncSessio
     db.add(new_sme)
     
     await db.commit()
-    await db.commit()
+    background_tasks.add_task(run_alternative_data_assessment_task, new_sme.id)
     # Reload user with relationship to avoid MissingGreenlet
     stmt = select(auth_models.User).options(
         selectinload(auth_models.User.sme_profile),

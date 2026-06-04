@@ -22,16 +22,15 @@ export function InvoiceUpload({ onSuccess }: InvoiceUploadProps) {
 
     // Simulated Progress Effect
     useEffect(() => {
-        let interval: any;
+        let interval: ReturnType<typeof setInterval> | undefined;
         if (isPending) {
-            setUploadProgress(10);
             interval = setInterval(() => {
                 setUploadProgress((prev) => (prev >= 90 ? 90 : prev + 10));
             }, 500);
-        } else {
-            setUploadProgress(0);
         }
-        return () => clearInterval(interval);
+        return () => {
+            if (interval) clearInterval(interval);
+        };
     }, [isPending]);
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, key: keyof typeof files) => {
@@ -59,9 +58,10 @@ export function InvoiceUpload({ onSuccess }: InvoiceUploadProps) {
                 setFiles({ xml: null, invoice_pdf: null, contract_pdf: null, delivery_pdf: null }); // Clear form
                 setTimeout(onSuccess, 1000);
             },
-            onError: (err: any) => {
+            onError: (err) => {
                 console.error("Upload Error:", err);
-                const errorMessage = err.response?.data?.detail || err.message || "Lỗi khi upload hóa đơn. Vui lòng thử lại.";
+                const apiError = err as { response?: { data?: { detail?: string } }; message?: string };
+                const errorMessage = apiError.response?.data?.detail || apiError.message || "Lỗi khi upload hóa đơn. Vui lòng thử lại.";
                 toast.error(`Upload thất bại: ${errorMessage}`);
                 setUploadProgress(0);
             }

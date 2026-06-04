@@ -43,6 +43,39 @@ class InvoiceParser:
             # print(f"Debug Error xpath {path}: {e}") # Uncomment để debug
             return default
 
+    def _first_xpath_text_by_local_names(self, names: list[str], default: Any = None) -> Any:
+        for name in names:
+            elements = self.root.xpath(f"//*[local-name()='{name}']")
+            if elements and elements[0].text:
+                return elements[0].text
+        return default
+
+    def _parse_decimal(self, value: str | None) -> Decimal:
+        if not value:
+            return Decimal(0)
+
+        cleaned = re.sub(r"[^\d,.\-]", "", value.strip())
+        if not cleaned:
+            return Decimal(0)
+
+        if "," in cleaned and "." in cleaned:
+            if cleaned.rfind(",") > cleaned.rfind("."):
+                cleaned = cleaned.replace(".", "").replace(",", ".")
+            else:
+                cleaned = cleaned.replace(",", "")
+        elif "," in cleaned:
+            groups = cleaned.split(",")
+            cleaned = cleaned.replace(",", "") if len(groups[-1]) == 3 else cleaned.replace(",", ".")
+        elif "." in cleaned:
+            groups = cleaned.split(".")
+            if len(groups) > 1 and all(len(group) == 3 for group in groups[1:]):
+                cleaned = cleaned.replace(".", "")
+
+        try:
+            return Decimal(cleaned)
+        except Exception:
+            return Decimal(0)
+
     def parse(self) -> Dict[str, Any]:
         """
         Hàm chính: Trả về Dictionary chứa thông tin hóa đơn
@@ -86,16 +119,16 @@ class InvoiceParser:
         # 4. Thông tin Thanh toán (TToan)
         payment_path = "//DLHDon/NDHDon/TToan"
         # Một số XML dùng TgTTTBSo, một số dùng TongTienThanhToan
-        total_amount_str = self._xpath_get(f"{payment_path}/TgTTTBSo") 
-        if not total_amount_str:
-             total_amount_str = self._xpath_get(f"{payment_path}/TongTienThanhToan")
+        total_amount_str = self._first_xpath_text_by_local_names([
+            "TgTTTBSo",
+            "TongTienThanhToan",
+            "TgTToan",
+            "TgTCThue",
+            "TgTThue",
+            "TgTTTBSauThue",
+        ])
 
-        total_amount = Decimal(0)
-        if total_amount_str:
-            try:
-                total_amount = Decimal(total_amount_str)
-            except:
-                pass
+        total_amount = self._parse_decimal(total_amount_str)
 
         # 5. Kiểm tra Chữ ký số
         signatures = self.root.xpath("//*[local-name()='Signature']")

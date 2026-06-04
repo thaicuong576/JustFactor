@@ -88,7 +88,8 @@ async def chat(
     db: AsyncSession = Depends(get_db)
 ):
     msg = request.message.strip()
-    print(f"DEBUG: Received message: '{msg}'")
+    safe_msg = msg.encode('ascii', errors='replace').decode('ascii')
+    print(f"DEBUG: Received message: '{safe_msg}'")
 
     context_info = []
 
@@ -131,12 +132,10 @@ async def chat(
                 "model": settings.LLM_MODEL,
                 "messages": [
                     {
-                        "role": "system",
-                        "content": "You are the JUSTFACTOR AI assistant. Be concise, accurate, and answer in Vietnamese.",
+                        "role": "user",
+                        "content": f"System Instructions: You are the JUSTFACTOR AI assistant. Be concise, accurate, and answer in Vietnamese.\n\n{prompt}",
                     },
-                    {"role": "user", "content": prompt},
                 ],
-                "temperature": 0.3,
                 "stream": False,
             }
             headers = {
@@ -152,8 +151,9 @@ async def chat(
             print("DEBUG: Custom LLM response received")
             return {"response": extract_assistant_text(data)}
         except Exception as e:
-            print(f"DEBUG: Custom LLM Error: {e}")
-            return {"response": f"Xin loi, LLM dang gap su co: {str(e)}"}
+            safe_err = str(e).encode('ascii', errors='replace').decode('ascii')
+            print(f"DEBUG: Custom LLM Error: {safe_err}")
+            return {"response": f"Xin loi, LLM dang gap su co: {safe_err}"}
 
     if LLM_MODE == "gemini" and model:
         try:
@@ -162,8 +162,9 @@ async def chat(
             print("DEBUG: Gemini API Response Received")
             return {"response": response.text}
         except Exception as e:
-            print(f"DEBUG: Gemini Error: {e}")
-            return {"response": f"Xin loi, AI dang gap su co: {str(e)}"}
+            safe_err = str(e).encode('ascii', errors='replace').decode('ascii')
+            print(f"DEBUG: Gemini Error: {safe_err}")
+            return {"response": f"Xin loi, AI dang gap su co: {safe_err}"}
 
     print("DEBUG: Fallback (No Model)")
     return {

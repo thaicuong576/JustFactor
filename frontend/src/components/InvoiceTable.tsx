@@ -1,13 +1,13 @@
 import React from 'react';
 import { type Invoice, InvoiceStatus } from '../types';
-import { FileSearch, Activity, CheckCircle2, Clock, AlertCircle, Lock } from 'lucide-react';
+import { FileSearch, Activity, CheckCircle2, Clock, AlertCircle, Lock, type LucideIcon } from 'lucide-react';
 
 interface Props {
     invoices: Invoice[];
     onCalculateScore: (id: number) => void;
 }
 
-const statusMap: Record<InvoiceStatus, { label: string; color: string; icon: any }> = {
+const statusMap: Record<InvoiceStatus, { label: string; color: string; icon: LucideIcon }> = {
     [InvoiceStatus.PROCESSING]: { label: 'Đang xử lý', color: 'text-amber-600 bg-amber-50', icon: Clock },
     [InvoiceStatus.VERIFIED]: { label: 'Đã xác thực', color: 'text-emerald-600 bg-emerald-50', icon: CheckCircle2 },
     [InvoiceStatus.REJECTED]: { label: 'Từ chối', color: 'text-red-600 bg-red-50', icon: AlertCircle },

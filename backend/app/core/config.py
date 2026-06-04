@@ -1,6 +1,10 @@
 # app/core/config.py
+from pathlib import Path
+
 from pydantic import field_validator
 from pydantic_settings import BaseSettings
+
+BACKEND_DIR = Path(__file__).resolve().parents[2]
 
 class Settings(BaseSettings):
     PROJECT_NAME: str = "Factoring MVP"
@@ -41,7 +45,7 @@ class Settings(BaseSettings):
         return v
 
     class Config:
-        env_file = ".env"
+        env_file = BACKEND_DIR / ".env"
         env_file_encoding = "utf-8"
         extra = "ignore"
 

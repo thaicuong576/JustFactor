@@ -18,6 +18,7 @@ from app.modules.trading.schemas import OfferResponse
 from app.modules.sme import models as sme_models
 from app.modules.fi import models as fi_models
 from app.modules.payment import models as pay_models
+from app.modules.alternative_data.services import build_public_scorecard
 
 router = APIRouter(prefix="/trading", tags=["Trading"])
 
@@ -87,7 +88,7 @@ async def get_deal_details(
     stmt = (
         select(inv_models.Invoice)
         .options(
-            selectinload(inv_models.Invoice.sme),
+            selectinload(inv_models.Invoice.sme).selectinload(sme_models.SME.alternative_data_assessment),
             selectinload(inv_models.Invoice.documents),
             selectinload(inv_models.Invoice.credit_score)
         )
@@ -121,7 +122,11 @@ async def get_deal_details(
             "business_license_path": invoice.sme.business_license_path,
             "rating": invoice.credit_score.grade if invoice.credit_score else "N/A",
             "score": invoice.credit_score.total_score if invoice.credit_score else 0,
-            "pd": invoice.credit_score.score_details.get("pd", 0.0) if (invoice.credit_score and invoice.credit_score.score_details) else 0.0
+            "pd": invoice.credit_score.score_details.get("pd", 0.0) if (invoice.credit_score and invoice.credit_score.score_details) else 0.0,
+            "alternative_data": build_public_scorecard(
+                invoice.sme.alternative_data_assessment,
+                current_user.role,
+            ) if invoice.sme and invoice.sme.alternative_data_assessment else None
         },
         "documents": [
             {

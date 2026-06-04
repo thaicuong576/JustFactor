@@ -10,6 +10,7 @@ from app.core.config import settings
 # Import models in dependency-safe order so SQLAlchemy relationships register.
 from app.modules.payment import models as payment_models
 from app.modules.scoring import models as scoring_models
+from app.modules.alternative_data import models as alternative_data_models
 from app.modules.trading import models as trading_models
 from app.modules.invoice import models as invoice_models
 from app.modules.fi import models as fi_models
@@ -25,6 +26,7 @@ from app.modules.dashboard.router import router as dashboard_router
 from app.modules.payment.router import router as payment_router
 from app.modules.fi.router import router as fi_router
 from app.modules.chatbot.router import router as chatbot_router
+from app.modules.alternative_data.router import router as alternative_data_router
 
 app = FastAPI(title=settings.PROJECT_NAME)
 
@@ -39,6 +41,7 @@ origins = [
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
+    allow_origin_regex=r"^http://(localhost|127\.0\.0\.1):\d+$",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -56,6 +59,7 @@ app.include_router(dashboard_router, prefix=settings.API_V1_STR)
 app.include_router(payment_router, prefix=settings.API_V1_STR)
 app.include_router(fi_router, prefix=settings.API_V1_STR)
 app.include_router(chatbot_router, prefix=settings.API_V1_STR)
+app.include_router(alternative_data_router, prefix=settings.API_V1_STR)
 
 
 @app.get("/")

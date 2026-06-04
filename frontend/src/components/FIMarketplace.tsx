@@ -3,13 +3,19 @@ import { type Invoice, InvoiceStatus } from '../types';
 import { apiService } from '../services/api';
 import { Landmark, ArrowUpRight, DollarSign } from 'lucide-react';
 
-const FIMarketplace = ({ invoices, onRefresh }: any) => {
+interface FIMarketplaceProps {
+    invoices: Invoice[];
+    onRefresh: () => void;
+}
+
+const FIMarketplace = ({ invoices, onRefresh }: FIMarketplaceProps) => {
     const [selectedInv, setSelectedInv] = useState<number | null>(null);
     const [rate, setRate] = useState(12.5);
 
     const handleMakeOffer = async () => {
         if (!selectedInv) return;
-        const inv = invoices.find((i: any) => i.id === selectedInv);
+        const inv = invoices.find((i) => i.id === selectedInv);
+        if (!inv) return;
         try {
             await apiService.makeOffer({
                 invoice_id: selectedInv,
@@ -20,7 +26,7 @@ const FIMarketplace = ({ invoices, onRefresh }: any) => {
             alert("Đã gửi đề nghị tài trợ thành công!");
             setSelectedInv(null);
             onRefresh();
-        } catch (e) { alert("Lỗi gửi offer"); }
+        } catch { alert("Lỗi gửi offer"); }
     };
 
     return (
@@ -34,7 +40,7 @@ const FIMarketplace = ({ invoices, onRefresh }: any) => {
             </div>
 
             <div className="grid grid-cols-1 gap-4">
-                {invoices.filter((i: any) => i.status === InvoiceStatus.VERIFIED || i.status === InvoiceStatus.TRADING).map((inv: Invoice) => (
+                {invoices.filter((i) => i.status === InvoiceStatus.VERIFIED || i.status === InvoiceStatus.TRADING).map((inv) => (
                     <div key={inv.id} className="bg-white p-8 rounded-[32px] shadow-sm border border-slate-100 flex justify-between items-center hover:shadow-md transition-all">
                         <div className="space-y-1">
                             <p className="text-xs font-black text-blue-600 uppercase tracking-widest">Hạng B - Score: 700</p>

@@ -11,8 +11,14 @@ import { useQuery } from "@tanstack/react-query";
 import { apiService } from "@/services/api";
 import { cn } from "@/lib/utils";
 
+type SMESummary = {
+    credit_limit?: number;
+    pending_amount?: number;
+    total_financed_amount?: number;
+};
+
 // Stats Component with Real Data Props
-const Stats = ({ stats }: { stats: any }) => (
+const Stats = ({ stats }: { stats?: SMESummary }) => (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         {[
             {
@@ -54,7 +60,7 @@ export default function SMEDashboard({ onLogout }: SMEDashboardProps) {
         queryKey: ['sme-summary'],
         queryFn: async () => {
             const res = await apiService.getSMESummary();
-            return res.data;
+            return res.data as SMESummary;
         }
     });
 

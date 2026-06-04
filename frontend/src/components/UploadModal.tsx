@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, FileText, FileCode, ShieldCheck, Upload, AlertCircle } from 'lucide-react';
+import { X, FileText, FileCode, ShieldCheck, Upload, AlertCircle, type LucideIcon } from 'lucide-react';
 
 interface UploadModalProps {
     onClose: () => void;
@@ -44,14 +44,14 @@ const UploadModal: React.FC<UploadModalProps> = ({ onClose, onUpload, lang }) =>
             // Gọi hàm onUpload từ App.tsx (hàm này sẽ gọi API Backend)
             await onUpload(files as { xml: File; pdf: File; contract: File; delivery: File });
             onClose();
-        } catch (err: any) {
-            setError(err.message || 'Upload failed');
+        } catch (err) {
+            setError(err instanceof Error ? err.message : 'Upload failed');
         } finally {
             setIsSubmitting(false);
         }
     };
 
-    const FileInput = ({ label, type, icon: Icon, accept }: any) => (
+    const FileInput = ({ label, type, icon: Icon, accept }: { label: string; type: keyof typeof files; icon: LucideIcon; accept: string }) => (
         <div className="space-y-2">
             <label className="text-sm font-bold text-slate-700 flex items-center gap-2">
                 <Icon size={16} className="text-blue-600" />
