@@ -54,9 +54,12 @@ class VietQRService:
             except Exception as e:
                 return {"success": False, "message": str(e)}
 
-    def generate_qr_url(self, bank_code: str, account_number: str, amount: float, content: str) -> str:
+    def generate_qr_url(self, bank_short_name: str, account_number: str, amount: float, content: str) -> str:
         """
-        Generate a VietQR quick-link image URL.
+        Generate a SePay QR image URL.
+        SePay docs: https://qr.sepay.vn/img?acc={acc}&bank={bank}&amount={amount}&des={des}
+        bank must be the SePay short_name (e.g. "MBBank"), not the VietQR BIN code.
         """
-        safe_content = content.replace(" ", "%20")
-        return f"https://img.vietqr.io/image/{bank_code}-{account_number}-compact2.png?amount={int(amount)}&addInfo={safe_content}"
+        import urllib.parse
+        safe_content = urllib.parse.quote(content, safe="")
+        return f"https://qr.sepay.vn/img?acc={account_number}&bank={bank_short_name}&amount={int(amount)}&des={safe_content}"

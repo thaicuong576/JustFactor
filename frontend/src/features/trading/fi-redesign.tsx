@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { useRoleTheme } from "@/lib/role-theme";
+import { cn } from "@/lib/utils";
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { Briefcase, DollarSign, LayoutDashboard, Save, Settings, ShieldCheck, Store, TrendingUp } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
@@ -31,16 +33,16 @@ export function FILayoutRedesign({
 }) {
     return (
         <ProductShell
-            roleLabel="Cổng FI"
+            roleTheme="fi"
             currentPage={currentPage}
             onNavigate={onNavigate}
             onLogout={onLogout}
             balance="20.5B VND"
             navItems={[
-                { id: "dashboard", label: "Tổng quan", icon: LayoutDashboard },
-                { id: "marketplace", label: "Sàn giao dịch", icon: Store },
-                { id: "portfolio", label: "Danh mục", icon: Briefcase },
-                { id: "settings", label: "Khẩu vị rủi ro", icon: Settings },
+                { id: "dashboard", label: "Tổng quan vốn", icon: LayoutDashboard },
+                { id: "marketplace", label: "Sàn hóa đơn", icon: Store },
+                { id: "portfolio", label: "Đề nghị & Danh mục", icon: Briefcase },
+                { id: "settings", label: "Khẩu vị đầu tư", icon: Settings },
             ]}
         >
             {children}
@@ -60,8 +62,8 @@ export function FIDashboardRedesign() {
     return (
         <>
             <PageHeader
-                eyebrow="Điều phối vốn"
-                title="Tổng quan FI"
+                eyebrow="JustFactor Capital"
+                title="Chào mừng đối tác vốn FI"
                 description="Theo dõi vốn đã cam kết, lợi nhuận dự kiến và các nghĩa vụ giao dịch đang hoạt động."
             />
             {isLoading ? (
@@ -78,6 +80,7 @@ export function FIDashboardRedesign() {
 }
 
 export function FIMarketplaceRedesign() {
+    const theme = useRoleTheme();
     const { data: invoices, isLoading } = useTradingInvoices();
     const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
 
@@ -95,14 +98,14 @@ export function FIMarketplaceRedesign() {
             <div className="grid grid-cols-1 gap-5 xl:grid-cols-3">
                 {invoices?.map((invoice) => (
                     <Card key={invoice.id} className="overflow-hidden transition hover:-translate-y-0.5 hover:shadow-xl hover:shadow-slate-300/60">
-                        <div className="h-1.5 bg-gradient-to-r from-teal-800 to-teal-500" />
+                        <div className="h-1.5 bg-gradient-to-r from-amber-600 to-amber-400" />
                         <CardContent className="p-5">
                             <div className="mb-5 flex items-start justify-between gap-4">
                                 <div>
                                     <div className="text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Hóa đơn #{invoice.invoice_number}</div>
                                     <h3 className="mt-2 text-2xl font-black text-slate-950">{formatVND(invoice.total_amount)}</h3>
                                 </div>
-                                <Badge variant="outline" className="bg-teal-50 text-teal-700">Score {invoice.credit_score || invoice.grade || "B"}</Badge>
+                                <Badge variant="outline" className="bg-amber-50 text-amber-800 border-amber-200/50">Score {invoice.credit_score || invoice.grade || "B"}</Badge>
                             </div>
                             <div className="mb-5 rounded-2xl bg-slate-50 p-4">
                                         <div className="text-xs font-bold uppercase tracking-[0.12em] text-slate-500">Bên mua</div>
@@ -118,7 +121,7 @@ export function FIMarketplaceRedesign() {
                                     </div>
                                 </div>
                             </div>
-                            <Button className="w-full" size="lg" onClick={() => setSelectedInvoice(invoice)}>
+                            <Button className={cn("w-full", theme.buttonClass)} size="lg" onClick={() => setSelectedInvoice(invoice)}>
                                 Mở phòng giao dịch
                             </Button>
                         </CardContent>
@@ -150,7 +153,7 @@ export function FIPortfolioRedesign() {
     const renderOffer = (offer: any, tone: "amber" | "emerald" | "blue" | "slate") => (
         <button
             key={offer.id}
-            className="w-full rounded-2xl border border-slate-200 bg-white p-5 text-left shadow-sm transition hover:border-teal-300 hover:shadow-md"
+            className="w-full rounded-2xl border border-slate-200 bg-white p-5 text-left shadow-sm transition hover:border-amber-300 hover:shadow-md"
             onClick={() => setSelectedInvoiceId(offer.invoice.id)}
         >
             <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
@@ -198,6 +201,7 @@ export function FIPortfolioRedesign() {
 }
 
 export function FISettingsRedesign() {
+    const theme = useRoleTheme();
     const [config, setConfig] = useState({
         minCreditScore: 600,
         maxLTV: 80,
@@ -251,7 +255,7 @@ export function FISettingsRedesign() {
                         <Switch checked={config.autoInvest} onCheckedChange={(checked) => setConfig({ ...config, autoInvest: checked })} />
                     </div>
                     <div className="flex justify-end">
-                        <Button onClick={handleSave} disabled={saving} size="lg">
+                        <Button className={theme.buttonClass} onClick={handleSave} disabled={saving} size="lg">
                             <Save className="h-4 w-4" />
                             Lưu tiêu chí
                         </Button>

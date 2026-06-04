@@ -60,6 +60,12 @@ def build_prompt(msg: str, context_info: list[str]) -> str:
     """
 
 
+def strip_thinking(text: str) -> str:
+    if not text:
+        return text
+    return re.sub(r"<think>.*?</think>", "", text, flags=re.DOTALL | re.IGNORECASE).strip()
+
+
 def extract_assistant_text(payload: dict) -> str:
     choices = payload.get("choices") or []
     if not choices:
@@ -69,7 +75,7 @@ def extract_assistant_text(payload: dict) -> str:
     content = message.get("content")
 
     if isinstance(content, str):
-        return content
+        return strip_thinking(content)
 
     if isinstance(content, list):
         text_parts = []
@@ -77,7 +83,7 @@ def extract_assistant_text(payload: dict) -> str:
             if isinstance(item, dict) and item.get("type") == "text":
                 text_parts.append(item.get("text", ""))
         if text_parts:
-            return "".join(text_parts)
+            return strip_thinking("".join(text_parts))
 
     raise ValueError("Unsupported LLM response format")
 
@@ -153,6 +159,41 @@ async def chat(
         except Exception as e:
             safe_err = str(e).encode('ascii', errors='replace').decode('ascii')
             print(f"DEBUG: Custom LLM Error: {safe_err}")
+            
+            # MiniMax Fallback
+            if settings.MINIMAX_API_KEY:
+                print("DEBUG: Custom LLM failed. Falling back to MiniMax LLM...")
+                try:
+                    minimax_base = settings.MINIMAX_BASE_URL.rstrip("/")
+                    if not minimax_base.endswith("/v1"):
+                        minimax_base = f"{minimax_base}/v1"
+                    minimax_url = f"{minimax_base}/chat/completions"
+                    
+                    minimax_payload = {
+                        "model": settings.MINIMAX_MODEL,
+                        "messages": [
+                            {
+                                "role": "user",
+                                "content": f"System Instructions: You are the JUSTFACTOR AI assistant. Be concise, accurate, and answer in Vietnamese.\n\n{prompt}",
+                            },
+                        ],
+                        "stream": False,
+                    }
+                    minimax_headers = {
+                        "Authorization": f"Bearer {settings.MINIMAX_API_KEY}",
+                        "Content-Type": "application/json",
+                    }
+                    async with httpx.AsyncClient(timeout=30.0) as client:
+                        response = await client.post(minimax_url, json=minimax_payload, headers=minimax_headers)
+                        response.raise_for_status()
+                        data = response.json()
+                    print("DEBUG: MiniMax LLM response received")
+                    return {"response": extract_assistant_text(data)}
+                except Exception as ex_minimax:
+                    safe_err_minimax = str(ex_minimax).encode('ascii', errors='replace').decode('ascii')
+                    print(f"DEBUG: MiniMax Fallback Error: {safe_err_minimax}")
+                    return {"response": f"Xin loi, LLM va MiniMax deu dang gap su co: {safe_err_minimax}"}
+            
             return {"response": f"Xin loi, LLM dang gap su co: {safe_err}"}
 
     if LLM_MODE == "gemini" and model:

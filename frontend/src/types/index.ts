@@ -43,6 +43,13 @@ export interface User {
         address?: string | null;
         company_website?: string | null;
         linkedin_url?: string | null;
+        legal_rep_name?: string | null;
+        legal_rep_cccd?: string | null;
+        phone_number?: string | null;
+        business_license_path?: string | null;
+        cccd_front_path?: string | null;
+        cccd_back_path?: string | null;
+        portrait_path?: string | null;
     } | null;
 }
 

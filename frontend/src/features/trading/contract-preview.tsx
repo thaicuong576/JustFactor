@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button";
 
 import type { Offer, Invoice } from "@/types";
 import { Check, Download } from "lucide-react";
+import { API_URL } from "@/services/api";
 
 interface ContractPreviewProps {
     invoice: Invoice;
@@ -11,6 +12,18 @@ interface ContractPreviewProps {
 }
 
 export function ContractPreview({ invoice, offer, onConfirm, onCancel }: ContractPreviewProps) {
+    const handleDownloadPdf = () => {
+        const filePath = invoice.file_path_invoice_pdf || (invoice as any).pdf_file_path;
+        if (!filePath) {
+            alert("Không tìm thấy tệp PDF của hóa đơn này.");
+            return;
+        }
+        const cleanPath = filePath.replace(/^\/+/, "");
+        const token = localStorage.getItem("access_token");
+        const url = `${API_URL}/auth/files/${cleanPath}?token=${token}`;
+        window.open(url, "_blank");
+    };
+
     return (
         <div className="space-y-6">
             <div className="bg-white border rounded-lg p-8 shadow-inner h-[60vh] overflow-y-auto font-serif text-sm leading-relaxed">
@@ -52,7 +65,7 @@ export function ContractPreview({ invoice, offer, onConfirm, onCancel }: Contrac
 
             <div className="flex justify-end gap-4">
                 <Button variant="outline" onClick={onCancel}>Hủy bỏ</Button>
-                <Button variant="outline"> <Download className="mr-2 h-4 w-4" /> Tải xuống PDF</Button>
+                <Button variant="outline" onClick={handleDownloadPdf}> <Download className="mr-2 h-4 w-4" /> Tải xuống PDF</Button>
                 <Button onClick={onConfirm} className="bg-blue-700 text-white font-bold px-8">
                     <Check className="mr-2 h-4 w-4" /> Ký và Xác nhận
                 </Button>
