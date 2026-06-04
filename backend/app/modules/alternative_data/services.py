@@ -910,7 +910,11 @@ async def run_alternative_data_assessment_task(sme_id: int) -> None:
             assessment.raw_evidence = {
                 "homepage_excerpt": page_excerpt,
                 "recruitment_snippets": rec_snippets,
-                "negative_snippets": neg_snippets
+                "negative_snippets": neg_snippets,
+                "internal_links": internal_links,
+                "submitted_website": sme.company_website,
+                "submitted_linkedin": sme.linkedin_url,
+                "llm_raw_response": llm_result,
             }
             assessment.sources = sources
             assessment.public_summary = result_scorecard.get("evidence_summary", "")

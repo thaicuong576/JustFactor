@@ -81,7 +81,7 @@ function RawEvidencePanel({ rawEvidence }: { rawEvidence: Record<string, unknown
         );
     }
 
-    const knownKeys = ["homepage_excerpt", "website_excerpt", "recruitment_snippets", "negative_snippets", "internal_links", "submitted_website", "submitted_linkedin"];
+    const knownKeys = ["homepage_excerpt", "website_excerpt", "recruitment_snippets", "negative_snippets", "internal_links", "submitted_website", "submitted_linkedin", "llm_raw_response"];
     const unknownKeys = Object.keys(rawEvidence).filter((k) => !knownKeys.includes(k));
 
     const renderValue = (key: string, value: unknown) => {
@@ -121,6 +121,7 @@ function RawEvidencePanel({ rawEvidence }: { rawEvidence: Record<string, unknown
         internal_links: "Internal links",
         submitted_website: "Submitted website",
         submitted_linkedin: "Submitted LinkedIn",
+        llm_raw_response: "LLM raw response",
     };
 
     return (
