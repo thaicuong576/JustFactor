@@ -12,6 +12,7 @@ import { EmptyState, MetricCard, PageHeader, ProductShell, Surface } from "@/com
 import { apiService } from "@/services/api";
 import { formatVND } from "@/lib/format";
 import { AlternativeDataScorecard } from "@/components/AlternativeDataScorecard";
+import { AdminSmeProfileDrawer, type AdminSmeProfileView } from "@/features/admin/admin-sme-profile-drawer";
 
 export function AdminLayoutRedesign({
     currentPage,
@@ -59,6 +60,8 @@ export function AdminDashboardOverviewRedesign() {
         },
     });
 
+    const [selectedSme, setSelectedSme] = useState<AdminSmeProfileView | null>(null);
+
     return (
         <>
             <PageHeader
@@ -87,7 +90,7 @@ export function AdminDashboardOverviewRedesign() {
                                 Doanh nghiệp SME đã duyệt
                             </h3>
                             <p className="mt-1 text-sm text-slate-500">
-                                Danh sách SME đã được phê duyệt và đang hoạt động trên sàn, kèm thống kê hóa đơn.
+                                Danh sách SME đã được phê duyệt và đang hoạt động trên sàn. Nhấn vào một SME để xem hồ sơ chi tiết.
                             </p>
                         </div>
                     </div>
@@ -106,11 +109,12 @@ export function AdminDashboardOverviewRedesign() {
                                     <TableHead className="font-semibold text-slate-900 text-right">Số hóa đơn</TableHead>
                                     <TableHead className="font-semibold text-slate-900 text-right">Đã tài trợ</TableHead>
                                     <TableHead className="font-semibold text-slate-900">Ngày đăng ký</TableHead>
+                                    <TableHead className="font-semibold text-slate-900">Hồ sơ</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
                                 {approvedSmes.map((sme: any) => (
-                                    <TableRow key={sme.id} className="hover:bg-slate-50">
+                                    <TableRow key={sme.id} className="hover:bg-slate-50 cursor-pointer">
                                         <TableCell className="font-bold text-slate-900">
                                             {sme.sme_profile?.company_name || "—"}
                                         </TableCell>
@@ -130,6 +134,11 @@ export function AdminDashboardOverviewRedesign() {
                                         <TableCell className="text-slate-500 text-sm">
                                             {sme.created_at ? new Date(sme.created_at).toLocaleDateString("vi-VN") : "—"}
                                         </TableCell>
+                                        <TableCell>
+                                            <Button size="sm" variant="outline" onClick={() => setSelectedSme(sme)}>
+                                                <Eye className="h-4 w-4" />
+                                            </Button>
+                                        </TableCell>
                                     </TableRow>
                                 ))}
                             </TableBody>
@@ -137,6 +146,14 @@ export function AdminDashboardOverviewRedesign() {
                     )}
                 </Surface>
             </div>
+
+            {/* Unified Profile Drawer for approved SMEs */}
+            <AdminSmeProfileDrawer
+                open={!!selectedSme}
+                onClose={() => setSelectedSme(null)}
+                view={selectedSme}
+                mode="approved"
+            />
 
             <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
                 <Surface>
@@ -197,6 +214,17 @@ export function UserApprovalPageRedesign() {
         enabled: !!selectedSmeId,
     });
 
+    // Normalize pending user to AdminSmeProfileView
+    const pendingSmeView: AdminSmeProfileView | null = selectedUser?.role === "SME" ? {
+        id: selectedUser.id,
+        email: selectedUser.email,
+        full_name: selectedUser.full_name,
+        created_at: selectedUser.created_at,
+        sme_profile: selectedUser.sme_profile ?? null,
+        total_invoices: 0,
+        financed_amount: 0,
+    } : null;
+
     return (
         <>
             <PageHeader
@@ -248,70 +276,17 @@ export function UserApprovalPageRedesign() {
                 )}
             </Surface>
 
-            {selectedUser && (
-                <Dialog
-                    open={!!selectedUser}
-                    onOpenChange={(open) => {
-                        if (!open) {
-                            setSelectedUser(null);
-                            setRejectReason("");
-                        }
-                    }}
-                >
-                    <DialogContent className="max-w-4xl">
-                        <DialogHeader>
-                            <DialogTitle>{selectedUser.sme_profile?.company_name || selectedUser.email}</DialogTitle>
-                            <DialogDescription>Kiểm tra thông tin doanh nghiệp và chỉ duyệt khi giấy tờ gốc khớp với hồ sơ.</DialogDescription>
-                        </DialogHeader>
-                        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                            {[
-                                ["Công ty", selectedUser.sme_profile?.company_name],
-                                ["Mã số thuế", selectedUser.sme_profile?.tax_code],
-                                ["Người đại diện", selectedUser.sme_profile?.legal_rep_name],
-                                ["Điện thoại", selectedUser.sme_profile?.phone_number],
-                                ["Địa chỉ", selectedUser.sme_profile?.address],
-                                ["Website", selectedUser.sme_profile?.company_website],
-                                ["LinkedIn", selectedUser.sme_profile?.linkedin_url],
-                                ["Email", selectedUser.email],
-                            ].map(([label, value]) => (
-                                <div key={label} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                                    <div className="text-xs font-bold uppercase tracking-[0.12em] text-slate-500">{label}</div>
-                                    <div className="mt-1 font-black text-slate-950">{value || "Chưa cung cấp"}</div>
-                                </div>
-                            ))}
-                        </div>
-                        {alternativeDataLoading ? (
-                            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5 text-sm font-bold text-slate-500">
-                                Loading alternative data...
-                            </div>
-                        ) : (
-                            <AlternativeDataScorecard data={alternativeData} />
-                        )}
-                        <div className="space-y-2">
-                            <Label htmlFor="reject-reason">Lý do từ chối</Label>
-                            <textarea
-                                id="reject-reason"
-                                value={rejectReason}
-                                onChange={(event) => setRejectReason(event.target.value)}
-                                className="min-h-24 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-medium shadow-sm transition-colors placeholder:text-slate-400 focus-visible:border-teal-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-700/20"
-                                placeholder="Ghi rõ thiếu tài liệu, sai thông tin, hoặc lỗi cần SME bổ sung."
-                            />
-                        </div>
-                        <div className="flex justify-end gap-3">
-                            <Button
-                                variant="outline"
-                                disabled={isRejecting || isApproving || rejectReason.trim().length < 3}
-                                onClick={() => reject({ id: selectedUser.id, reason: rejectReason.trim() })}
-                            >
-                                Từ chối
-                            </Button>
-                            <Button disabled={isApproving} onClick={() => approve(selectedUser.id)}>
-                                Duyệt hồ sơ
-                            </Button>
-                        </div>
-                    </DialogContent>
-                </Dialog>
-            )}
+            {/* Unified Profile Drawer for pending SMEs */}
+            <AdminSmeProfileDrawer
+                open={!!selectedUser && selectedUser.role === "SME"}
+                onClose={() => { setSelectedUser(null); setRejectReason(""); }}
+                view={pendingSmeView}
+                mode="pending"
+                onApprove={(userId) => approve(userId)}
+                onReject={(userId, reason) => reject({ id: userId, reason })}
+                isApproving={isApproving}
+                isRejecting={isRejecting}
+            />
         </>
     );
 }
