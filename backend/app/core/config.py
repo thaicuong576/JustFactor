@@ -36,6 +36,12 @@ class Settings(BaseSettings):
     LLM_MODEL: str = ""
     # AI (Gemini)
     GEMINI_API_KEY: str = ""
+    
+    # MiniMax Fallback
+    MINIMAX_BASE_URL: str = "https://api.minimax.io"
+    MINIMAX_API_KEY: str = ""
+    MINIMAX_MODEL: str = "MiniMax-M2.7"
+    
     UPLOAD_DIR: str = "storage/uploads"
 
     @field_validator("DATABASE_URL")

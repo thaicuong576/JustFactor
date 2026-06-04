@@ -437,9 +437,9 @@ async def get_payment_kit(
 
     invoice = offer.invoice
 
-    # 2. Platform Intermediary Account (Hardcoded for Demo)
-    PF_BANK_CODE = "970422" # MB Bank
-    PF_ACCOUNT_NO = "VQRQAGJDK9038" 
+    # 2. Platform Intermediary Account — must match the SePay-monitored account
+    PF_BANK_SHORT_NAME = "VietinBank"  # SePay short_name — see https://qr.sepay.vn/banks.json
+    PF_ACCOUNT_NO = "100872385699"
     PF_ACCOUNT_NAME = "PLATFORM INTERMEDIARY"
 
     # 3. Chuẩn bị thông tin QR
@@ -451,7 +451,7 @@ async def get_payment_kit(
     # Platform sẽ tự trừ phí và chuyển Net cho SME sau.
     content_disburse = f"DISBURSE INV-{invoice.id}"
     qr_disburse = qr_service.generate_qr_url(
-        bank_code=PF_BANK_CODE,
+        bank_short_name=PF_BANK_SHORT_NAME,
         account_number=PF_ACCOUNT_NO,
         amount=offer.funding_amount,
         content=content_disburse
@@ -462,7 +462,7 @@ async def get_payment_kit(
     # Số tiền: invoice.total_amount
     content_repay = f"REPAY INV-{invoice.id}"
     qr_repay = qr_service.generate_qr_url(
-        bank_code=PF_BANK_CODE,
+        bank_short_name=PF_BANK_SHORT_NAME,
         account_number=PF_ACCOUNT_NO,
         amount=invoice.total_amount,
         content=content_repay
@@ -473,7 +473,7 @@ async def get_payment_kit(
         "status": invoice.status,
         "verification_details": invoice.verification_details,
         "intermediary_account": {
-            "bank_name": "MB Bank",
+            "bank_name": "VietinBank",
             "account_number": PF_ACCOUNT_NO,
             "account_name": PF_ACCOUNT_NAME
         },

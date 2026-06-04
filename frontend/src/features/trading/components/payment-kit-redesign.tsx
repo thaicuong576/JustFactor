@@ -16,16 +16,28 @@ interface PaymentKitProps {
 }
 
 export function PaymentKitRedesign({ invoiceId, userRole = "SME" }: PaymentKitProps) {
+    const isFI = userRole === "FI";
+    const isSME = userRole === "SME";
+    const isADMIN = userRole === "ADMIN";
+
+    const accentBorderHoverClass = isFI ? "hover:border-amber-400" : isADMIN ? "hover:border-slate-400" : "hover:border-teal-400";
+    const accentTextHoverClass = isFI ? "hover:text-amber-700" : isADMIN ? "hover:text-slate-800" : "hover:text-teal-700";
+    const groupTextHoverClass = isFI ? "group-hover:text-amber-700" : isADMIN ? "group-hover:text-slate-800" : "group-hover:text-teal-700";
+    const loadingSpinnerClass = isFI ? "text-amber-600" : isADMIN ? "text-slate-800" : "text-teal-700";
+
     const defaultTab = userRole === "FI" ? "disburse" : "repay";
+    const [mountTime] = useState(() => Date.now());
     const [activeTab, setActiveTab] = useState(defaultTab);
 
     const { data: kit, isLoading, isError, refetch } = useQuery({
-        queryKey: ["payment-kit", invoiceId],
+        queryKey: ["payment-kit", invoiceId, mountTime],
         queryFn: async () => {
             const response = await apiService.getPaymentKit(invoiceId);
             return response.data;
         },
         refetchInterval: 5000,
+        staleTime: 0,
+        gcTime: 0,
     });
 
     useEffect(() => {
@@ -64,7 +76,7 @@ export function PaymentKitRedesign({ invoiceId, userRole = "SME" }: PaymentKitPr
     if (isLoading) {
         return (
             <div className="flex flex-col items-center justify-center space-y-4 p-10">
-                <Loader2 className="h-10 w-10 animate-spin text-teal-700" />
+                <Loader2 className={cn("h-10 w-10 animate-spin", loadingSpinnerClass)} />
                 <p className="font-medium text-slate-500">Đang khởi tạo bộ thanh toán...</p>
             </div>
         );
@@ -133,13 +145,14 @@ export function PaymentKitRedesign({ invoiceId, userRole = "SME" }: PaymentKitPr
                                         completed={kit.status === "DISBURSED"}
                                         completedLabel="Đã giải ngân"
                                         onCopy={copyToClipboard}
+                                        userRole={userRole}
                                     />
 
                                     {kit.status === "FINANCED" && (
                                         <Button
                                             variant="ghost"
                                             size="sm"
-                                            className="h-7 w-full text-[11px] text-slate-400 hover:text-teal-700"
+                                            className={cn("h-7 w-full text-[11px] text-slate-400", accentTextHoverClass)}
                                             onClick={async () => {
                                                 await apiService.simulateFIFunding(invoiceId);
                                                 refetch();
@@ -172,6 +185,7 @@ export function PaymentKitRedesign({ invoiceId, userRole = "SME" }: PaymentKitPr
                                         amount={kit.repayment.amount}
                                         content={kit.repayment.content}
                                         onCopy={copyToClipboard}
+                                        userRole={userRole}
                                     />
 
                                     <Button
@@ -258,6 +272,7 @@ function QrPanel({
     completed,
     completedLabel,
     onCopy,
+    userRole = "SME",
 }: {
     qrUrl?: string;
     amount?: number;
@@ -265,7 +280,12 @@ function QrPanel({
     completed?: boolean;
     completedLabel?: string;
     onCopy: (text?: string) => void;
+    userRole?: "SME" | "FI" | "ADMIN";
 }) {
+    const isFI = userRole === "FI";
+    const isADMIN = userRole === "ADMIN";
+    const accentBorderHoverClass = isFI ? "hover:border-amber-400" : isADMIN ? "hover:border-slate-400" : "hover:border-teal-400";
+    const groupTextHoverClass = isFI ? "group-hover:text-amber-700" : isADMIN ? "group-hover:text-slate-800" : "group-hover:text-teal-700";
     return (
         <div className="space-y-4">
             <div className="flex justify-center">
@@ -293,13 +313,13 @@ function QrPanel({
 
             <button
                 onClick={() => onCopy(content)}
-                className="group flex w-full items-center justify-between rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-left transition hover:border-teal-400 hover:bg-white"
+                className={cn("group flex w-full items-center justify-between rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-left transition hover:bg-white", accentBorderHoverClass)}
             >
                 <div className="min-w-0">
                     <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-slate-400">Nội dung chuyển khoản</p>
                     <code className="block truncate text-sm font-black text-slate-950">{content || "Chưa có nội dung"}</code>
                 </div>
-                <Copy className="h-4 w-4 shrink-0 text-slate-400 group-hover:text-teal-700" />
+                <Copy className={cn("h-4 w-4 shrink-0 text-slate-400", groupTextHoverClass)} />
             </button>
         </div>
     );

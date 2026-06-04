@@ -240,7 +240,7 @@ class MiraStyleFallbackEnrichmentService:
                 
                 choices = data.get("choices") or []
                 content = choices[0]["message"]["content"]
-                
+                content = re.sub(r"<think>.*?</think>", "", content, flags=re.DOTALL | re.IGNORECASE)
                 clean_json = content.strip()
                 if clean_json.startswith("```"):
                     clean_json = re.sub(r"^```(?:json)?\n", "", clean_json)
@@ -263,6 +263,55 @@ class MiraStyleFallbackEnrichmentService:
             import traceback
             print("DEBUG: LLM enrichment exception details:")
             traceback.print_exc()
+            
+            if settings.MINIMAX_API_KEY:
+                print("DEBUG: Enrichment failed. Falling back to MiniMax...", flush=True)
+                try:
+                    minimax_base = settings.MINIMAX_BASE_URL.rstrip("/")
+                    if not minimax_base.endswith("/v1"):
+                        minimax_base = f"{minimax_base}/v1"
+                    minimax_url = f"{minimax_base}/chat/completions"
+                    
+                    minimax_payload = {
+                        "model": settings.MINIMAX_MODEL or "MiniMax-M2.7",
+                        "messages": [
+                            {"role": "user", "content": prompt}
+                        ],
+                        "stream": False
+                    }
+                    minimax_headers = {
+                        "Authorization": f"Bearer {settings.MINIMAX_API_KEY}",
+                        "Content-Type": "application/json"
+                    }
+                    async with httpx.AsyncClient(timeout=90.0) as client:
+                        response = await client.post(minimax_url, json=minimax_payload, headers=minimax_headers)
+                        response.raise_for_status()
+                        data = response.json()
+                        
+                        choices = data.get("choices") or []
+                        content = choices[0]["message"]["content"]
+                        content = re.sub(r"<think>.*?</think>", "", content, flags=re.DOTALL | re.IGNORECASE)
+                        clean_json = content.strip()
+                        if clean_json.startswith("```"):
+                            clean_json = re.sub(r"^```(?:json)?\n", "", clean_json)
+                            clean_json = re.sub(r"\n```$", "", clean_json)
+                            clean_json = clean_json.strip()
+                        
+                        import json
+                        parsed = json.loads(clean_json)
+                        
+                        required_keys = [
+                            "company_identity", "business_profile", "digital_legitimacy",
+                            "linkedin_footprint", "operating_activity", "reputation_risk", "source_quality"
+                        ]
+                        if all(k in parsed for k in required_keys):
+                            for k in required_keys:
+                                min_val = 0 if k == "linkedin_footprint" else 1
+                                parsed[k]["confidenceScore"] = max(min_val, min(int(parsed[k].get("confidenceScore", min_val)), 5))
+                            return parsed
+                except Exception as ex_minimax:
+                    print(f"ERROR: MiniMax fallback enrichment failed: {ex_minimax}", flush=True)
+                    traceback.print_exc()
             return None
         return None
 
@@ -682,7 +731,7 @@ Return ONLY a raw JSON object (no markdown wrapping, no explanation outside JSON
             data = response.json()
             choices = data.get("choices") or []
             content = choices[0]["message"]["content"].strip()
-            
+            content = re.sub(r"<think>.*?</think>", "", content, flags=re.DOTALL | re.IGNORECASE)
             if content.startswith("```"):
                 content = re.sub(r"^```(?:json)?\n", "", content)
                 content = re.sub(r"\n```$", "", content)
@@ -693,6 +742,43 @@ Return ONLY a raw JSON object (no markdown wrapping, no explanation outside JSON
         import traceback
         print(f"ERROR: LLM evaluation failed: {e}", flush=True)
         traceback.print_exc()
+        
+        if settings.MINIMAX_API_KEY:
+            print("DEBUG: Evaluation failed. Falling back to MiniMax...", flush=True)
+            try:
+                minimax_base = settings.MINIMAX_BASE_URL.rstrip("/")
+                if not minimax_base.endswith("/v1"):
+                    minimax_base = f"{minimax_base}/v1"
+                minimax_url = f"{minimax_base}/chat/completions"
+                
+                minimax_payload = {
+                    "model": settings.MINIMAX_MODEL or "MiniMax-M2.7",
+                    "messages": [
+                        {"role": "user", "content": f"{context}\n\n{prompt}"}
+                    ],
+                    "stream": False
+                }
+                minimax_headers = {
+                    "Authorization": f"Bearer {settings.MINIMAX_API_KEY}",
+                    "Content-Type": "application/json"
+                }
+                async with httpx.AsyncClient(timeout=45.0) as client:
+                    resp = await client.post(minimax_url, json=minimax_payload, headers=minimax_headers)
+                    resp.raise_for_status()
+                    minimax_data = resp.json()
+                    choices = minimax_data.get("choices") or []
+                    content = choices[0]["message"]["content"].strip()
+                    content = re.sub(r"<think>.*?</think>", "", content, flags=re.DOTALL | re.IGNORECASE)
+                    if content.startswith("```"):
+                        content = re.sub(r"^```(?:json)?\n", "", content)
+                        content = re.sub(r"\n```$", "", content)
+                        content = content.strip()
+                        
+                    return json.loads(content)
+            except Exception as ex_minimax:
+                print(f"ERROR: MiniMax fallback evaluation failed: {ex_minimax}", flush=True)
+                traceback.print_exc()
+                
         return None
 
 

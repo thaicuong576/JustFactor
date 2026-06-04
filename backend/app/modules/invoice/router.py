@@ -134,10 +134,13 @@ async def get_my_invoices(
     sme_id = current_user.sme_profile.id
 
     # 2. Query danh sách hóa đơn
-    # Sử dụng selectinload để lấy luôn điểm tín dụng (nếu có) hiển thị cho đẹp
+    # Sử dụng selectinload để lấy luôn điểm tín dụng và tài liệu
     stmt = (
         select(inv_models.Invoice)
-        .options(selectinload(inv_models.Invoice.credit_score)) 
+        .options(
+            selectinload(inv_models.Invoice.credit_score),
+            selectinload(inv_models.Invoice.documents)
+        ) 
         .where(inv_models.Invoice.sme_id == sme_id)
         .order_by(inv_models.Invoice.created_at.desc())
     )
@@ -157,7 +160,11 @@ async def get_my_invoices(
             "status": inv.status,
             "created_at": inv.created_at,
             "credit_score": inv.credit_score.total_score if inv.credit_score else None,
-            "grade": inv.credit_score.grade if inv.credit_score else None
+            "grade": inv.credit_score.grade if inv.credit_score else None,
+            "file_path_xml": inv.xml_file_path,
+            "file_path_invoice_pdf": inv.pdf_file_path,
+            "file_path_contract_pdf": next((d.file_path for d in inv.documents if d.document_type == inv_models.DocumentType.CONTRACT), None),
+            "file_path_delivery_pdf": next((d.file_path for d in inv.documents if d.document_type == inv_models.DocumentType.DELIVERY_NOTE), None)
         }
         for inv in invoices
     ]

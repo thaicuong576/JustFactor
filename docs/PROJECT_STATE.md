@@ -58,6 +58,54 @@ SME registers -> provides website/LinkedIn -> alternative data scoring engine ca
 
 ## Recent Work
 
+### 2026-06-04 - MiniMax 2.7 Fallback Setup
+
+Changed:
+
+- Added `MINIMAX_BASE_URL`, `MINIMAX_API_KEY`, and `MINIMAX_MODEL` to `Settings` in [config.py](file:///D:/eddie-projects/personal-projects/JustFactor/backend/app/core/config.py) and [.env](file:///D:/eddie-projects/personal-projects/JustFactor/backend/.env).
+- Configured MiniMax API fallback mechanism in [services.py](file:///D:/eddie-projects/personal-projects/JustFactor/backend/app/modules/alternative_data/services.py) (functions `evaluate_with_llm` and `_analyze_with_llm`) to seamlessly handle LLM requests if Kimi or the proxy returns a `429 Too Many Requests` or timeout error, including stripping `<think>...</think>` tags to prevent JSON parsing crashes.
+- Integrated the MiniMax fallback in the Chatbot API router [router.py](file:///D:/eddie-projects/personal-projects/JustFactor/backend/app/modules/chatbot/router.py) to prevent UI chatbot failure when the main proxy reaches its rate limits, automatically cleaning out reasoning tags from the generated response.
+- Restarted the uvicorn debug server on port 8002 to load the updated environment variables.
+
+Verified:
+
+- Ran backend unit tests with `.venv\Scripts\python.exe -m unittest discover -s tests -v`, and all 8 tests passed successfully.
+- Confirmed debug server is active and listening at port 8002.
+
+### 2026-06-04 - Visual Color Accents and FI Gold Theme Fixes
+
+Changed:
+
+- Replaced hardcoded `indigo` styles with the correct `bg-amber-600` and `hover:bg-amber-700` styling in [login-form-redesign.tsx](file:///D:/eddie-projects/personal-projects/JustFactor/frontend/src/features/auth/login-form-redesign.tsx) tabs and button for the FI role.
+- Made the login sidebar badge text color dynamic (`theme.badgeTextColorClass`) and added role-specific active border accents (`border-teal-400`, `border-amber-400`, `border-slate-400`) to the switcher cards in [App.tsx](file:///D:/eddie-projects/personal-projects/JustFactor/frontend/src/App.tsx).
+- Refactored [product-shell.tsx](file:///D:/eddie-projects/personal-projects/JustFactor/frontend/src/components/product-shell.tsx)'s light `BrandMark` component to dynamically determine the background color based on the selected role, preventing the logo from reverting to teal.
+- Removed all residual teal accents in [fi-redesign.tsx](file:///D:/eddie-projects/personal-projects/JustFactor/frontend/src/features/trading/fi-redesign.tsx) (invoices cards gradient, credit score badges, buttons, item list hover borders).
+- Overhauled [deal-detail-drawer-redesign.tsx](file:///D:/eddie-projects/personal-projects/JustFactor/frontend/src/features/trading/deal-detail-drawer-redesign.tsx) and [payment-kit-redesign.tsx](file:///D:/eddie-projects/personal-projects/JustFactor/frontend/src/features/trading/components/payment-kit-redesign.tsx) to implement amber/gold highlights for risk metrics, container cards, loading indicators, and action buttons.
+- Updated [AlternativeDataScorecard.tsx](file:///D:/eddie-projects/personal-projects/JustFactor/frontend/src/components/AlternativeDataScorecard.tsx) to use dynamic text, border, and badge styling based on the active role theme, and added customizable indicator colors support to [progress.tsx](file:///D:/eddie-projects/personal-projects/JustFactor/frontend/src/components/ui/progress.tsx).
+- Boosted radial gradients opacities in [index.css](file:///D:/eddie-projects/personal-projects/JustFactor/frontend/src/index.css) to make the color difference in workspace backgrounds distinct.
+- Overhauled the "Hồ sơ công ty" settings view in [sme-dashboard-redesign.tsx](file:///D:/eddie-projects/personal-projects/JustFactor/frontend/src/features/dashboard/sme-dashboard-redesign.tsx) to display full registered profile data (Name, Tax Code, Address, Legal Representative, Contact Phone, Website, LinkedIn) and viewable cards for the 4 uploaded KYC documents.
+
+Verified:
+
+- Checked compiling output via Vite production build (`npm run build`), which completes without errors.
+- Verified backend unittests still pass cleanly (`8 tests passed`).
+
+### 2026-06-04 - Unified Role Layout & Theme Identity
+
+Changed:
+
+- Created [role-theme.ts](file:///D:/eddie-projects/personal-projects/JustFactor/frontend/src/lib/role-theme.ts) exposing theme configurations and `RoleThemeContext` for the three workspaces: SME (`sme`, teal/emerald), FI (`fi`, amber/gold), and Admin (`admin`, graphite/slate).
+- Refactored [product-shell.tsx](file:///D:/eddie-projects/personal-projects/JustFactor/frontend/src/components/product-shell.tsx)'s components `ProductShell`, `BrandMark`, `PageHeader`, and `MetricCard` to automatically inherit theme settings (sidebar background, active button color, text accents, and custom card tones) from context.
+- Added custom gradient sidebar classes (`.jf-sidebar-sme`, `.jf-sidebar-fi` with a warm gold radial glow, `.jf-sidebar-admin`) in [index.css](file:///D:/eddie-projects/personal-projects/JustFactor/frontend/src/index.css).
+- Passed corresponding `roleTheme` props to SME Dashboard, FI layout, and Admin Layout components, and refined navigation items labels to match their workflow terms.
+- Added an interactive **Role Switcher** on the login page ([LoginFormRedesign](file:///D:/eddie-projects/personal-projects/JustFactor/frontend/src/features/auth/login-form-redesign.tsx)) with dynamic left-sidebar gradients/descriptions (teal/emerald, midnight navy/gold, and graphite/vermilion) and automatic credential prefilling for demo accounts.
+- Refactored dashboard headers to show personalized welcomes (e.g. dynamic company names for SMEs) without using emojis for a professional look.
+
+Verified:
+
+- Checked compiling output via Vite production build (`npm run build`), which completes without errors.
+- Verified backend unittests still pass cleanly (`8 tests passed`).
+
 ### 2026-06-04 - Move Alternative Data Engine Spec Into Docs
 
 Changed:

@@ -56,6 +56,27 @@
       linear-gradient(135deg, #071923 0%, #0d212d 100%);
   }
 
+  .jf-sidebar-sme {
+    background-image:
+      radial-gradient(circle at 16% 12%, rgba(16, 185, 129, 0.25), transparent 30%),
+      radial-gradient(circle at 82% 72%, rgba(13, 148, 136, 0.2), transparent 34%),
+      linear-gradient(135deg, #042f2e 0%, #022c22 100%);
+  }
+
+  .jf-sidebar-fi {
+    background-image:
+      radial-gradient(circle at 16% 12%, rgba(245, 158, 11, 0.3), transparent 30%),
+      radial-gradient(circle at 82% 72%, rgba(30, 58, 138, 0.25), transparent 34%),
+      linear-gradient(135deg, #0f172a 0%, #1c1917 100%);
+  }
+
+  .jf-sidebar-admin {
+    background-image:
+      radial-gradient(circle at 16% 12%, rgba(156, 163, 175, 0.2), transparent 30%),
+      radial-gradient(circle at 82% 72%, rgba(75, 85, 99, 0.2), transparent 34%),
+      linear-gradient(135deg, #1f2937 0%, #111827 100%);
+  }
+
   .jf-surface-shadow {
     box-shadow: 0 18px 52px rgba(7, 25, 35, 0.09);
   }

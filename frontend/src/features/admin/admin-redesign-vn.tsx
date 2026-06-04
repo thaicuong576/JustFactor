@@ -26,15 +26,15 @@ export function AdminLayoutRedesign({
 }) {
     return (
         <ProductShell
-            roleLabel="Vận hành hệ thống"
+            roleTheme="admin"
             currentPage={currentPage}
             onNavigate={onNavigate}
             onLogout={onLogout}
             navItems={[
-                { id: "dashboard", label: "Tổng quan", icon: LayoutDashboard },
-                { id: "users", label: "Duyệt hồ sơ", icon: Users },
+                { id: "dashboard", label: "Tổng quan Ops", icon: LayoutDashboard },
+                { id: "users", label: "Hàng chờ KYC", icon: Users },
                 { id: "invoices", label: "Kiểm toán hóa đơn", icon: FileText },
-                { id: "transactions", label: "Giao dịch ngân hàng", icon: Activity },
+                { id: "transactions", label: "Giám sát giao dịch", icon: Activity },
             ]}
         >
             {children}
@@ -54,8 +54,8 @@ export function AdminDashboardOverviewRedesign() {
     return (
         <>
             <PageHeader
-                eyebrow="Điều hành nền tảng"
-                title="Tổng quan hệ thống"
+                eyebrow="JustFactor Ops"
+                title="Hệ thống điều hành trung tâm"
                 description="Theo dõi GMV đã tài trợ, doanh thu phí, SME hoạt động và tổ chức tài chính đang tham gia."
             />
             {isLoading ? (

@@ -2,6 +2,8 @@
 import { useEffect, useState } from "react";
 import { Building2, DollarSign, ExternalLink, FileText, Loader2, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
+import { roleThemes } from "@/lib/role-theme";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,6 +23,7 @@ interface DealDetailDrawerProps {
 }
 
 export function DealDetailDrawerRedesign({ invoiceId, onClose, onOfferSuccess }: DealDetailDrawerProps) {
+    const theme = roleThemes.fi;
     const [data, setData] = useState<any>(null);
     const [loading, setLoading] = useState(false);
     const [offerForm, setOfferForm] = useState({ rate: 12, amount: 0, tenor: 30 });
@@ -96,7 +99,7 @@ export function DealDetailDrawerRedesign({ invoiceId, onClose, onOfferSuccess }:
 
                 {loading ? (
                     <div className="flex justify-center py-20">
-                        <Loader2 className="h-8 w-8 animate-spin text-teal-700" />
+                        <Loader2 className="h-8 w-8 animate-spin text-amber-500" />
                     </div>
                 ) : data ? (
                     <Tabs defaultValue="overview">
@@ -114,15 +117,15 @@ export function DealDetailDrawerRedesign({ invoiceId, onClose, onOfferSuccess }:
                                 <InfoCard label="Bên mua" value={data.invoice.buyer_name} />
                             </div>
 
-                            <div className="rounded-2xl border border-teal-100 bg-teal-50/60 p-5">
-                                <h3 className="mb-4 flex items-center gap-2 font-black text-teal-950">
-                                    <ShieldCheck className="h-5 w-5" />
+                            <div className="rounded-2xl border border-amber-200 bg-amber-50/60 p-5">
+                                <h3 className="mb-4 flex items-center gap-2 font-black text-amber-950">
+                                    <ShieldCheck className="h-5 w-5 text-amber-600" />
                                     Đánh giá rủi ro
                                 </h3>
                                 <div className="grid grid-cols-3 gap-4 text-center">
-                                    <RiskMetric label="Điểm tín dụng" value={data.sme.score || "--"} />
-                                    <RiskMetric label="Xếp hạng" value={data.sme.rating || "--"} />
-                                    <RiskMetric label="PD" value={typeof data.sme.pd === "number" ? `${(data.sme.pd * 100).toFixed(1)}%` : "--"} />
+                                    <RiskMetric label="Điểm tín dụng" value={data.sme.score || "--"} className="text-amber-700" />
+                                    <RiskMetric label="Xếp hạng" value={data.sme.rating || "--"} className="text-amber-700" />
+                                    <RiskMetric label="PD" value={typeof data.sme.pd === "number" ? `${(data.sme.pd * 100).toFixed(1)}%` : "--"} className="text-amber-700" />
                                 </div>
                             </div>
 
@@ -164,12 +167,12 @@ export function DealDetailDrawerRedesign({ invoiceId, onClose, onOfferSuccess }:
 
                         {!isPaymentStage && (
                             <TabsContent value="offer" className="space-y-6">
-                                <div className="rounded-2xl border border-teal-100 bg-teal-50/60 p-4">
-                                    <h4 className="mb-2 flex items-center gap-2 text-sm font-black uppercase text-teal-950">
-                                        <DollarSign className="h-4 w-4" />
+                                <div className="rounded-2xl border border-amber-200 bg-amber-50/60 p-4">
+                                    <h4 className="mb-2 flex items-center gap-2 text-sm font-black uppercase text-amber-950">
+                                        <DollarSign className="h-4 w-4 text-amber-600" />
                                         Đề nghị mua khoản phải thu
                                     </h4>
-                                    <p className="text-sm font-medium leading-6 text-teal-900">
+                                    <p className="text-sm font-medium leading-6 text-amber-900">
                                         Bạn đang đề nghị mua hóa đơn với mệnh giá <strong>{formatVND(data.invoice.total_amount)}</strong>.
                                     </p>
                                 </div>
@@ -227,7 +230,7 @@ export function DealDetailDrawerRedesign({ invoiceId, onClose, onOfferSuccess }:
                                     </div>
                                     <div className="flex justify-between px-1 text-xs font-bold text-slate-500">
                                         <span>Tối đa: {formatVND(data.invoice.total_amount)}</span>
-                                        <span className={offerForm.amount > data.invoice.total_amount ? "text-red-600" : "text-teal-700"}>
+                                        <span className={offerForm.amount > data.invoice.total_amount ? "text-red-600" : "text-amber-700"}>
                                             Tỷ lệ ứng trước: {data.invoice.total_amount > 0 ? ((offerForm.amount / data.invoice.total_amount) * 100).toFixed(1) : 0}%
                                         </span>
                                     </div>
@@ -240,7 +243,7 @@ export function DealDetailDrawerRedesign({ invoiceId, onClose, onOfferSuccess }:
                                     <DetailRow label="Giải ngân ròng" value={formatVND(offerForm.amount * 0.99)} strong />
                                 </div>
 
-                                <Button onClick={handleSubmitOffer} className="h-14 w-full text-lg" disabled={submitting}>
+                                <Button onClick={handleSubmitOffer} className={cn("h-14 w-full text-lg", theme.buttonClass)} disabled={submitting}>
                                     {submitting ? <Loader2 className="h-5 w-5 animate-spin" /> : <DollarSign className="h-5 w-5" />}
                                     Gửi đề nghị tài trợ
                                 </Button>
@@ -268,10 +271,10 @@ function InfoCard({ label, value }: { label: string; value: string }) {
     );
 }
 
-function RiskMetric({ label, value }: { label: string; value: string | number }) {
+function RiskMetric({ label, value, className }: { label: string; value: string | number; className?: string }) {
     return (
         <div>
-            <div className="text-2xl font-black text-teal-800">{value}</div>
+            <div className={cn("text-2xl font-black text-amber-600", className)}>{value}</div>
             <div className="mt-1 text-xs font-bold uppercase tracking-[0.1em] text-slate-500">{label}</div>
         </div>
     );
