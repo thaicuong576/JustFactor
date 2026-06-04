@@ -74,6 +74,7 @@ export const apiService = {
     getFISummary: () => api.get('/dashboard/fi/summary'),
     getAdminSummary: () => api.get('/dashboard/admin/summary'),
     getPendingUsers: () => api.get('/auth/admin/users?status=pending'),
+    getApprovedSmes: () => api.get('/dashboard/admin/approved-smes'),
     getAllUsers: () => api.get('/auth/admin/users'),
     approveUser: (userId: number) => api.put(`/auth/admin/approve/${userId}`),
     rejectUser: (userId: number, reason: string) => api.put(`/auth/admin/reject/${userId}`, { reason }),

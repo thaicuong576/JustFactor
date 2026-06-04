@@ -1,11 +1,13 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, and_
+from sqlalchemy.orm import selectinload
 from app.core.database import get_db
 from app.modules.auth.models import User, UserRole
 from app.modules.auth.router import get_current_user
 from app.modules.invoice import models as inv_models
 from app.modules.trading import models as trade_models
+from app.modules.sme import models as sme_models
 
 router = APIRouter(prefix="/dashboard", tags=["Dashboard"])
 
@@ -129,20 +131,74 @@ async def get_admin_summary(
 ):
     if current_user.role != UserRole.ADMIN:
         return {"error": "Not authorized"}
-        
+
     # Stats: Total Financed, Total Fees (Mock), Active Users
     q_financed = select(func.sum(inv_models.Invoice.total_amount)).where(inv_models.Invoice.status == inv_models.InvoiceStatus.FINANCED)
     total_financed = (await db.execute(q_financed)).scalar() or 0
-    
+
     q_smes = select(func.count(User.id)).where(and_(User.role == UserRole.SME, User.is_active == True))
     active_smes = (await db.execute(q_smes)).scalar() or 0
-    
+
     q_fis = select(func.count(User.id)).where(and_(User.role == UserRole.FI, User.is_active == True))
     active_fis = (await db.execute(q_fis)).scalar() or 0
-    
+
     return {
         "total_gmv": total_financed,
         "platform_fees": float(total_financed) * 0.01, # Mock 1% fee
         "active_smes": active_smes,
         "active_fis": active_fis
     }
+
+
+@router.get("/admin/approved-smes")
+async def get_admin_approved_smes(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Return list of approved (active) SMEs with their profiles and invoice stats."""
+    if current_user.role != UserRole.ADMIN:
+        return {"error": "Not authorized"}
+
+    # Get all active SME users
+    stmt = select(User).where(
+        User.role == UserRole.SME,
+        User.is_active == True
+    ).options(
+        selectinload(User.sme_profile)
+    )
+    result = await db.execute(stmt)
+    sme_users = result.scalars().all()
+
+    data = []
+    for user in sme_users:
+        sme_id = user.sme_profile.id if user.sme_profile else None
+
+        # Count invoices
+        total_invoices = 0
+        financed_amount = 0
+        if sme_id:
+            q_count = select(func.count(inv_models.Invoice.id)).where(inv_models.Invoice.sme_id == sme_id)
+            total_invoices = (await db.execute(q_count)).scalar() or 0
+
+            q_fin = select(func.sum(inv_models.Invoice.total_amount)).where(
+                inv_models.Invoice.sme_id == sme_id,
+                inv_models.Invoice.status == inv_models.InvoiceStatus.FINANCED
+            )
+            financed_amount = (await db.execute(q_fin)).scalar() or 0
+
+        data.append({
+            "id": user.id,
+            "email": user.email,
+            "full_name": user.full_name,
+            "created_at": user.created_at,
+            "sme_profile": {
+                "id": sme_id,
+                "company_name": user.sme_profile.company_name if user.sme_profile else None,
+                "tax_code": user.sme_profile.tax_code if user.sme_profile else None,
+                "phone_number": user.sme_profile.phone_number if user.sme_profile else None,
+            } if user.sme_profile else None,
+            "total_invoices": total_invoices,
+            "financed_amount": financed_amount,
+        })
+
+    return data

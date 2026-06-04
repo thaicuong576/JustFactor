@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState } from "react";
-import { Activity, Briefcase, Check, CheckCircle, Copy, DollarSign, Eye, FileText, LayoutDashboard, TrendingUp, Users } from "lucide-react";
+import { Activity, Briefcase, Check, CheckCircle, Copy, DollarSign, Eye, FileText, LayoutDashboard, TrendingUp, Users, Building2 } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
@@ -51,6 +51,14 @@ export function AdminDashboardOverviewRedesign() {
         },
     });
 
+    const { data: approvedSmes, isLoading: smeLoading } = useQuery({
+        queryKey: ["admin-approved-smes"],
+        queryFn: async () => {
+            const response = await apiService.getApprovedSmes();
+            return response.data;
+        },
+    });
+
     return (
         <>
             <PageHeader
@@ -68,6 +76,68 @@ export function AdminDashboardOverviewRedesign() {
                     <MetricCard label="FI hoạt động" value={stats?.active_fis || 0} icon={Users} tone="amber" />
                 </div>
             )}
+
+            {/* Danh sách SME đã duyệt */}
+            <div className="mt-6">
+                <Surface className="p-0">
+                    <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
+                        <div>
+                            <h3 className="text-lg font-black text-slate-950 flex items-center gap-2">
+                                <Building2 className="h-5 w-5 text-slate-600" />
+                                Doanh nghiệp SME đã duyệt
+                            </h3>
+                            <p className="mt-1 text-sm text-slate-500">
+                                Danh sách SME đã được phê duyệt và đang hoạt động trên sàn, kèm thống kê hóa đơn.
+                            </p>
+                        </div>
+                    </div>
+                    {smeLoading ? (
+                        <div className="p-6 text-slate-500">Đang tải danh sách SME...</div>
+                    ) : !approvedSmes || approvedSmes.length === 0 ? (
+                        <EmptyState title="Chưa có SME nào được duyệt" description="Sau khi admin duyệt hồ sơ KYC, SME sẽ xuất hiện tại đây." />
+                    ) : (
+                        <Table>
+                            <TableHeader>
+                                <TableRow className="bg-slate-50">
+                                    <TableHead className="font-semibold text-slate-900">Tên công ty</TableHead>
+                                    <TableHead className="font-semibold text-slate-900">Mã số thuế</TableHead>
+                                    <TableHead className="font-semibold text-slate-900">Email</TableHead>
+                                    <TableHead className="font-semibold text-slate-900">SĐT</TableHead>
+                                    <TableHead className="font-semibold text-slate-900 text-right">Số hóa đơn</TableHead>
+                                    <TableHead className="font-semibold text-slate-900 text-right">Đã tài trợ</TableHead>
+                                    <TableHead className="font-semibold text-slate-900">Ngày đăng ký</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {approvedSmes.map((sme: any) => (
+                                    <TableRow key={sme.id} className="hover:bg-slate-50">
+                                        <TableCell className="font-bold text-slate-900">
+                                            {sme.sme_profile?.company_name || "—"}
+                                        </TableCell>
+                                        <TableCell className="font-mono text-sm text-slate-700">
+                                            {sme.sme_profile?.tax_code || "—"}
+                                        </TableCell>
+                                        <TableCell className="text-slate-700">{sme.email}</TableCell>
+                                        <TableCell className="text-slate-700">
+                                            {sme.sme_profile?.phone_number || "—"}
+                                        </TableCell>
+                                        <TableCell className="text-right font-mono text-slate-700">
+                                            {sme.total_invoices}
+                                        </TableCell>
+                                        <TableCell className="text-right font-mono font-bold text-emerald-700">
+                                            {sme.financed_amount ? formatVND(sme.financed_amount) : "—"}
+                                        </TableCell>
+                                        <TableCell className="text-slate-500 text-sm">
+                                            {sme.created_at ? new Date(sme.created_at).toLocaleDateString("vi-VN") : "—"}
+                                        </TableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
+                    )}
+                </Surface>
+            </div>
+
             <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
                 <Surface>
                     <h3 className="text-lg font-black text-slate-950">Hoạt động gần đây</h3>
@@ -99,6 +169,8 @@ export function UserApprovalPageRedesign() {
         mutationFn: async (userId: number) => apiService.approveUser(userId),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["admin-users-pending"] });
+            queryClient.invalidateQueries({ queryKey: ["admin-approved-smes"] });
+            queryClient.invalidateQueries({ queryKey: ["admin-summary"] });
             setSelectedUser(null);
             setRejectReason("");
             toast.success("Đã duyệt thành viên");
