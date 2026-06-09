@@ -37,6 +37,7 @@ class AlternativeDataAssessment(Base):
     sources: Mapped[list] = mapped_column(JSONB, nullable=True, server_default="[]")
     public_summary: Mapped[str] = mapped_column(String, nullable=True)
     error_message: Mapped[str] = mapped_column(String, nullable=True)
+    progress_log: Mapped[list] = mapped_column(JSONB, nullable=True, server_default="[]")
     last_run_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), onupdate=func.now(), nullable=True)

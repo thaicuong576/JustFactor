@@ -104,9 +104,9 @@ export function DealDetailDrawerRedesign({ invoiceId, onClose, onOfferSuccess }:
                 ) : data ? (
                     <Tabs defaultValue="overview">
                         <TabsList className="mb-6 grid h-auto w-full grid-cols-3 rounded-2xl bg-slate-100 p-1">
-                            <TabsTrigger value="overview" className="rounded-xl font-bold">Tổng quan</TabsTrigger>
-                            <TabsTrigger value="documents" className="rounded-xl font-bold">Tài liệu</TabsTrigger>
-                            <TabsTrigger value={isPaymentStage ? "payment" : "offer"} className="rounded-xl font-bold">
+                            <TabsTrigger value="overview" className="rounded-xl font-bold data-[state=active]:bg-amber-600 data-[state=active]:text-white data-[state=active]:shadow-md">Tổng quan</TabsTrigger>
+                            <TabsTrigger value="documents" className="rounded-xl font-bold data-[state=active]:bg-amber-600 data-[state=active]:text-white data-[state=active]:shadow-md">Tài liệu</TabsTrigger>
+                            <TabsTrigger value={isPaymentStage ? "payment" : "offer"} className="rounded-xl font-bold data-[state=active]:bg-amber-600 data-[state=active]:text-white data-[state=active]:shadow-md">
                                 {isPaymentStage ? "Thanh toán" : "Ra giá"}
                             </TabsTrigger>
                         </TabsList>
@@ -185,7 +185,7 @@ export function DealDetailDrawerRedesign({ invoiceId, onClose, onOfferSuccess }:
                                             value={offerForm.rate || ""}
                                             onChange={(event) => {
                                                 const rate = Number(event.target.value);
-                                                setOfferForm({ ...offerForm, rate, amount: recalculateFromRate(rate) });
+                                                setOfferForm({ ...offerForm, rate });
                                             }}
                                             className="h-12 text-lg font-bold"
                                         />
@@ -197,7 +197,7 @@ export function DealDetailDrawerRedesign({ invoiceId, onClose, onOfferSuccess }:
                                             value={offerForm.tenor || ""}
                                             onChange={(event) => {
                                                 const tenor = Number(event.target.value);
-                                                setOfferForm({ ...offerForm, tenor, amount: recalculateFromRate(offerForm.rate, tenor) });
+                                                setOfferForm({ ...offerForm, tenor });
                                             }}
                                             className="h-12 text-lg font-bold"
                                         />
@@ -218,11 +218,7 @@ export function DealDetailDrawerRedesign({ invoiceId, onClose, onOfferSuccess }:
                                                 }
                                                 if (!/^\d*$/.test(rawValue)) return;
                                                 const amount = Number(rawValue);
-                                                const total = Number(data.invoice.total_amount || 0);
-                                                const nextRate = total > 0 && offerForm.tenor > 0
-                                                    ? ((total - amount) / total) * (365 / offerForm.tenor) * 100
-                                                    : offerForm.rate;
-                                                setOfferForm({ ...offerForm, amount, rate: Number(nextRate.toFixed(2)) });
+                                                setOfferForm({ ...offerForm, amount });
                                             }}
                                             className="h-14 pr-16 text-2xl font-black"
                                         />
@@ -237,10 +233,25 @@ export function DealDetailDrawerRedesign({ invoiceId, onClose, onOfferSuccess }:
                                 </div>
 
                                 <div className="space-y-2 rounded-2xl bg-slate-50 p-4 text-sm">
-                                    <DetailRow label="Phí nền tảng (1%)" value={formatVND(offerForm.amount * 0.01)} />
-                                    <DetailRow label="Lợi nhuận gộp dự kiến" value={`+${formatVND(data.invoice.total_amount - offerForm.amount)}`} positive />
-                                    <Separator />
-                                    <DetailRow label="Giải ngân ròng" value={formatVND(offerForm.amount * 0.99)} strong />
+                                    {(() => {
+                                        const total = Number(data.invoice.total_amount || 0);
+                                        const amount = offerForm.amount;
+                                        const rate = offerForm.rate;
+                                        const tenor = offerForm.tenor;
+                                        const interestIncome = amount * (rate / 100) * (tenor / 365);
+                                        const platformCommission = total * 0.005;
+                                        const grossProfit = interestIncome - platformCommission;
+                                        const netDisbursement = amount * 0.99;
+                                        return (
+                                            <>
+                                                <DetailRow label="Lãi thu được (FI)" value={`+${formatVND(interestIncome)}`} positive />
+                                                <DetailRow label="Phí nền tảng (0.5%)" value={`-${formatVND(platformCommission)}`} />
+                                                <DetailRow label="Lợi nhuận gộp dự kiến" value={`+${formatVND(grossProfit)}`} positive />
+                                                <Separator />
+                                                <DetailRow label="Giải ngân ròng (SME nhận)" value={formatVND(netDisbursement)} strong />
+                                            </>
+                                        );
+                                    })()}
                                 </div>
 
                                 <Button onClick={handleSubmitOffer} className={cn("h-14 w-full text-lg", theme.buttonClass)} disabled={submitting}>

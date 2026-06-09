@@ -22,7 +22,7 @@ export function OfferListDialogRedesign({ invoice, open, onOpenChange }: OfferLi
 
     if (!invoice) return null;
 
-    const isFunded = ["FINANCED", "DISBURSED", "CLOSED"].includes(invoice.status);
+    const isFunded = ["FINANCED", "FUNDING_RECEIVED", "DISBURSED", "REPAYMENT_RECEIVED", "CLOSED"].includes(invoice.status);
 
     const handleConfirmSign = () => {
         if (!selectedOffer) return;

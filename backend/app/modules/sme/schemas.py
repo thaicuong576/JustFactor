@@ -3,9 +3,16 @@ from typing import List, Optional
 from datetime import datetime
 
 class BankAccountDTO(BaseModel):
+    id: int
     bank_name: str
     account_number: str
     account_holder: str
+    is_verified: bool = False
+    is_primary: bool = False
+    qr_image_path: Optional[str] = None
+
+    class Config:
+        from_attributes = True
 
 class InvoiceSummaryDTO(BaseModel):
     id: int

@@ -17,8 +17,9 @@ class BankAccount(Base):
     account_number: Mapped[str] = mapped_column(String(50), nullable=False)
     account_holder: Mapped[str] = mapped_column(String(255), nullable=False) 
     
-    is_verified: Mapped[bool] = mapped_column(Boolean, default=False) 
-    is_primary: Mapped[bool] = mapped_column(Boolean, default=False)  
+    is_verified: Mapped[bool] = mapped_column(Boolean, default=False)
+    is_primary: Mapped[bool] = mapped_column(Boolean, default=False)
+    qr_image_path: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 

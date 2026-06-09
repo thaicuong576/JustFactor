@@ -27,24 +27,29 @@ async def get_sme_summary(
     q1 = select(func.count(inv_models.Invoice.id)).where(inv_models.Invoice.sme_id == sme_id)
     total_invoices = (await db.execute(q1)).scalar() or 0
 
-    # 2. Tính tổng tiền đã được tài trợ (Total Financed Amount)
-    # SELECT SUM(total_amount) FROM invoices WHERE sme_id = ... AND status = 'FINANCED'
+    # 2. Tính tổng tiền đã được tài trợ (đã qua giai đoạn FINANCED trở lên)
     q2 = select(func.sum(inv_models.Invoice.total_amount)).where(
         and_(
             inv_models.Invoice.sme_id == sme_id,
-            inv_models.Invoice.status == inv_models.InvoiceStatus.FINANCED
+            inv_models.Invoice.status.in_([
+                inv_models.InvoiceStatus.FINANCED,
+                inv_models.InvoiceStatus.FUNDING_RECEIVED,
+                inv_models.InvoiceStatus.DISBURSED,
+                inv_models.InvoiceStatus.REPAYMENT_RECEIVED,
+                inv_models.InvoiceStatus.CLOSED,
+            ])
         )
     )
     total_financed = (await db.execute(q2)).scalar() or 0
 
-    # 3. Tính tổng tiền đang chờ duyệt (Pending Amount)
+    # 3. Tính tổng tiền đang chờ vốn (Pending Amount)
     q3 = select(func.sum(inv_models.Invoice.total_amount)).where(
         and_(
             inv_models.Invoice.sme_id == sme_id,
             inv_models.Invoice.status.in_([
-                inv_models.InvoiceStatus.PROCESSING, 
+                inv_models.InvoiceStatus.PROCESSING,
                 inv_models.InvoiceStatus.VERIFIED,
-                inv_models.InvoiceStatus.TRADING
+                inv_models.InvoiceStatus.TRADING,
             ])
         )
     )

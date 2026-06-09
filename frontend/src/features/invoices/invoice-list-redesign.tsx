@@ -24,7 +24,8 @@ const statusMap: Record<InvoiceStatus, { label: string; variant: "default" | "se
     [InvoiceStatus.VERIFIED]: { label: "Đã xác thực", variant: "success" },
     [InvoiceStatus.REJECTED]: { label: "Từ chối", variant: "destructive" },
     [InvoiceStatus.TRADING]: { label: "Đang gọi vốn", variant: "default" },
-    [InvoiceStatus.FINANCED]: { label: "Đã tài trợ", variant: "success" },
+    [InvoiceStatus.FINANCED]: { label: "Chờ FI chuyển tiền", variant: "warning" },
+    [InvoiceStatus.FUNDING_RECEIVED]: { label: "Đang giải ngân", variant: "warning" },
     [InvoiceStatus.DISBURSED]: { label: "Đã giải ngân", variant: "success" },
     [InvoiceStatus.REPAYMENT_RECEIVED]: { label: "Chờ tất toán", variant: "warning" },
     [InvoiceStatus.CLOSED]: { label: "Đã đóng", variant: "outline" },
@@ -122,7 +123,9 @@ export function InvoiceListRedesign({ onViewOffers }: InvoiceListProps) {
                         <TableCell>
                             {(invoice.status === InvoiceStatus.TRADING ||
                                 invoice.status === InvoiceStatus.FINANCED ||
+                                invoice.status === InvoiceStatus.FUNDING_RECEIVED ||
                                 invoice.status === InvoiceStatus.DISBURSED ||
+                                invoice.status === InvoiceStatus.REPAYMENT_RECEIVED ||
                                 invoice.status === InvoiceStatus.CLOSED) &&
                                 onViewOffers && (
                                     <Button size="sm" variant="outline" onClick={() => onViewOffers(invoice)}>

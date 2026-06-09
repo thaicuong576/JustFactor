@@ -1,7 +1,7 @@
 from datetime import datetime
 import re
 
-from fastapi import APIRouter, Depends, Header, HTTPException, status
+from fastapi import APIRouter, Depends, Header, HTTPException, UploadFile, File, status
 from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -73,9 +73,41 @@ async def add_bank_account(
         "account_holder": new_acc.account_holder,
         "is_verified": new_acc.is_verified,
         "is_primary": new_acc.is_primary,
+        "qr_image_path": new_acc.qr_image_path,
         "created_at": new_acc.created_at,
         "verification_note": verification_note,
     }
+
+
+@router.post("/bank-accounts/{account_id}/qr")
+async def upload_bank_account_qr(
+    account_id: int,
+    file: UploadFile = File(...),
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    if current_user.role != UserRole.SME:
+        raise HTTPException(status_code=403, detail="Only SME can upload QR")
+    if file.content_type not in ["image/jpeg", "image/png", "image/jpg"]:
+        raise HTTPException(status_code=400, detail="Only JPG/PNG allowed")
+
+    acc = await db.get(pay_models.BankAccount, account_id)
+    if not acc or acc.sme_id != current_user.sme_profile.id:
+        raise HTTPException(status_code=404, detail="Bank account not found")
+
+    content = await file.read()
+    if len(content) > 5 * 1024 * 1024:
+        raise HTTPException(status_code=400, detail="Max 5MB")
+
+    from app.core.supabase_storage import supabase_storage
+    import uuid, os
+    ext = os.path.splitext(file.filename)[1]
+    path = f"uploads/qr_{uuid.uuid4().hex}{ext}"
+    supabase_storage.upload_file(content, path, file.content_type)
+
+    acc.qr_image_path = path
+    await db.commit()
+    return {"qr_image_path": path}
 
 
 @router.post("/webhook/sepay")
@@ -122,7 +154,7 @@ async def sepay_webhook(
             amount_in = float(payload.transferAmount)
 
             if payload.transferType == "in" and accepted_offer:
-                if invoice.status == inv_models.InvoiceStatus.FINANCED and abs(amount_in - accepted_offer.fi_disbursement_amount) < 50000:
+                if invoice.status == inv_models.InvoiceStatus.FINANCED and abs(amount_in - float(accepted_offer.fi_disbursement_amount)) < 50000:
                     invoice.status = inv_models.InvoiceStatus.FUNDING_RECEIVED
                     print(f"Invoice #{invoice_id}: FI Funding Received ({amount_in})")
                 elif invoice.status == inv_models.InvoiceStatus.DISBURSED and abs(amount_in - float(invoice.total_amount)) < 50000:
@@ -303,6 +335,16 @@ async def admin_approve_disbursement(
     amount_to_sme = accepted_offer.net_amount_to_sme
     transfer_content = f"DISBURSE INV-{invoice.id}"
 
+    # Look up SME's primary bank account
+    sme_bank_res = await db.execute(
+        select(pay_models.BankAccount).where(
+            pay_models.BankAccount.sme_id == invoice.sme_id,
+            pay_models.BankAccount.is_primary == True
+        )
+    )
+    sme_bank = sme_bank_res.scalar_one_or_none()
+    sme_account_number = f"{sme_bank.bank_name} - {sme_bank.account_number} ({sme_bank.account_holder})" if sme_bank else "Chưa có STK (SME chưa thêm tài khoản)"
+
     pending_tx = pay_models.BankTransaction(
         transfer_type="out",
         transfer_amount=amount_to_sme,
@@ -311,7 +353,7 @@ async def admin_approve_disbursement(
         related_invoice_id=invoice.id,
         status="PENDING",
         gateway="MBBank",
-        account_number="SME_ACCOUNT",
+        account_number=sme_bank.account_number if sme_bank else "UNKNOWN",
         transaction_date=datetime.now(),
         sepay_id=None,
     )
@@ -321,7 +363,8 @@ async def admin_approve_disbursement(
 
     return {
         "message": "Disbursement Approved. Please transfer funds now.",
-        "amount": amount_to_sme,
+        "amount": float(amount_to_sme),
+        "account_number": sme_account_number,
         "content": transfer_content,
         "status": "PENDING",
     }

@@ -1,12 +1,14 @@
-from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
+from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks, Query
 from fastapi.responses import HTMLResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, desc
-from sqlalchemy.orm import selectinload # QUAN TRỌNG: Dùng để nạp relationship
+from sqlalchemy.orm import selectinload
 from jinja2 import Environment, FileSystemLoader
 from datetime import datetime
 from pydantic import BaseModel
 from typing import Optional, List
+from jose import JWTError, jwt
+from app.core.config import settings
 
 from app.core.database import get_db
 from app.core.email import send_email_notification
@@ -344,9 +346,19 @@ async def accept_offer(
 @router.get("/offers/{offer_id}/contract-preview", response_class=HTMLResponse)
 async def preview_contract(
     offer_id: int,
-    current_user: User = Depends(get_current_user),
+    token: Optional[str] = Query(None),
     db: AsyncSession = Depends(get_db)
 ):
+    # Support token via query param (for browser window.open) or Bearer header
+    if not token:
+        raise HTTPException(status_code=401, detail="Authentication required")
+    try:
+        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+        user_id = payload.get("sub")
+        if not user_id:
+            raise HTTPException(status_code=401, detail="Invalid token")
+    except JWTError:
+        raise HTTPException(status_code=401, detail="Invalid token")
     # FIX: Nạp sẵn các quan hệ để render template
     stmt = select(trade_models.Offer).options(
         selectinload(trade_models.Offer.invoice).selectinload(inv_models.Invoice.sme),

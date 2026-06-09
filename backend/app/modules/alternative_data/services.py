@@ -15,6 +15,39 @@ from app.modules.auth.models import UserRole
 from app.modules.sme import models as sme_models
 
 
+def _push_log(sme_id: int, message: str) -> None:
+    """Push a log line to active SSE subscribers AND buffer to DB."""
+    try:
+        from app.modules.alternative_data.router import push_log
+        push_log(sme_id, message)
+    except Exception:
+        pass
+    # Buffer to DB async-safely via a module-level list
+    _log_buffer.setdefault(sme_id, []).append(message)
+
+
+# In-memory buffer: sme_id -> list of log lines (flushed to DB at task end)
+_log_buffer: dict[int, list[str]] = {}
+
+
+async def _flush_log_to_db(sme_id: int, db) -> None:
+    """Persist buffered log lines to assessment.progress_log."""
+    from app.modules.alternative_data import models as alt_models
+    from sqlalchemy import select
+    logs = _log_buffer.pop(sme_id, [])
+    if not logs:
+        return
+    result = await db.execute(
+        select(alt_models.AlternativeDataAssessment).where(
+            alt_models.AlternativeDataAssessment.sme_id == sme_id
+        )
+    )
+    assessment = result.scalar_one_or_none()
+    if assessment:
+        assessment.progress_log = logs
+        await db.commit()
+
+
 COMPONENT_CONFIG = {
     "identity_consistency": {
         "max_score": 40,
@@ -545,74 +578,116 @@ class AlternativeDataAssessmentService:
 
 
 def fetch_sme_website(website_url: str) -> tuple[str, list[str]]:
-    from scrapling.fetchers import StealthyFetcher
-    
+    from scrapling.fetchers import StealthyFetcher, Fetcher
+
     normalized = normalize_url(website_url)
     if not normalized:
         return "No website content scraped.", []
-        
+
+    # Try plain Fetcher first (fast ~2s), fallback to StealthyFetcher for JS sites
+    response = None
     try:
-        response = StealthyFetcher.fetch(normalized, headless=True, timeout=12000)
-        if response.status != 200:
-            return f"Failed to fetch website. HTTP Status: {response.status}", []
-            
-        # Strip HTML tags
-        text_content = _html_to_text_excerpt(response.text, limit=4000)
-        
-        # Extract internal links
-        parsed = urlparse(normalized)
-        base = f"{parsed.scheme}://{parsed.netloc}"
-        links = []
-        for href in re.findall(r'href=["\']([^"\']+)["\']', response.text, flags=re.IGNORECASE):
-            url = urljoin(base, href)
-            parsed_url = urlparse(url)
-            if parsed_url.netloc != parsed.netloc:
-                continue
-            lowered = url.lower()
-            if any(token in lowered for token in ["about", "contact", "service", "news", "blog"]) or _looks_like_first_party_recruitment_url(url):
-                if url not in links:
-                    links.append(url)
-            if len(links) >= 5:
-                break
-        return text_content[:4000], links
-    except Exception as e:
-        return f"Failed to fetch website: {str(e)}", []
+        r = Fetcher.get(normalized, timeout=10)
+        if r.status == 200 and len(r.html_content or r.text or "") > 1000:
+            response = r
+    except Exception:
+        pass
+
+    if response is None:
+        try:
+            response = StealthyFetcher.fetch(normalized, headless=True, timeout=30000)
+        except Exception as e:
+            return f"Failed to fetch website: {str(e)}", []
+
+    if response.status != 200:
+        return f"Failed to fetch website. HTTP Status: {response.status}", []
+
+    raw_html = response.html_content or response.text or ""
+    text_content = _html_to_text_excerpt(raw_html, limit=4000)
+
+    # Extract internal links
+    parsed = urlparse(normalized)
+    base = f"{parsed.scheme}://{parsed.netloc}"
+    links = []
+    for href in re.findall(r'href=["\']([^"\']+)["\']', raw_html, flags=re.IGNORECASE):
+        url = urljoin(base, href)
+        parsed_url = urlparse(url)
+        if parsed_url.netloc != parsed.netloc:
+            continue
+        lowered = url.lower()
+        if any(token in lowered for token in ["about", "contact", "service", "news", "blog"]) or _looks_like_first_party_recruitment_url(url):
+            if url not in links:
+                links.append(url)
+        if len(links) >= 5:
+            break
+    return text_content[:4000], links
+
+
+def _parse_ddg_results(response) -> list[str]:
+    """Parse DDG HTML results into readable 'Title — URL: snippet' strings."""
+    results = response.css('.web-result')
+    parsed = []
+    for res in results:
+        title = ' '.join(res.css('.result__a::text').getall()).strip()
+        url = ' '.join(res.css('.result__url::text').getall()).strip()
+        # DDG splits snippet around bolded company name — join all text nodes
+        snippet = ' '.join(res.css('.result__snippet::text').getall()).strip()
+        if title or snippet:
+            line = f"{title} ({url}) — {snippet}" if url else f"{title} — {snippet}"
+            parsed.append(line.strip())
+    return parsed
 
 
 def search_ddg_queries(company_name: str) -> tuple[list[str], list[str]]:
-    from scrapling.fetchers import StealthyFetcher
+    from scrapling.fetchers import Fetcher
     from urllib.parse import quote_plus
-    
+
     rec_snippets = []
     neg_snippets = []
-    
-    # 1. Combined recruitment query
+
+    # 1. Combined recruitment query — try with site filter, fall back to broader search
     query_rec = f'"{company_name}" (site:topcv.vn OR site:vietnamworks.com OR site:careerviet.vn OR site:linkedin.com/jobs)'
     url_rec = f"https://html.duckduckgo.com/html/?q={quote_plus(query_rec)}"
     try:
-        response = StealthyFetcher.fetch(url_rec, headless=True, timeout=12000)
+        response = Fetcher.get(url_rec, timeout=10)
         if response.status == 200:
-            snippets = response.css('.result__snippet::text').getall()
-            rec_snippets = [s.strip() for s in snippets if s.strip()][:5]
+            rec_snippets = _parse_ddg_results(response)[:5]
+        if not rec_snippets:
+            # Fallback: broader search without site filter
+            query_rec2 = f'"{company_name}" tuyển dụng'
+            url_rec2 = f"https://html.duckduckgo.com/html/?q={quote_plus(query_rec2)}"
+            r2 = Fetcher.get(url_rec2, timeout=10)
+            if r2.status == 200:
+                rec_snippets = _parse_ddg_results(r2)[:5]
     except Exception as e:
         print(f"ERROR: DDG recruitment search failed: {e}")
-        
+
     # 2. Combined negative query
     query_neg = f'"{company_name}" (phốt OR lừa đảo OR scam OR đa cấp OR nợ OR kiện)'
     url_neg = f"https://html.duckduckgo.com/html/?q={quote_plus(query_neg)}"
+    # Domains that are business registry/tax lookup sites — not negative signals
+    _neutral_domains = (
+        "masothue.com", "tratencongty.com", "infodoanhnghiep.com",
+        "tracuumst.com", "mst.vn", "mts.gov.vn", "dangkykinhdoanh.gov.vn",
+        "vn.indeed.com", "indeed.com"
+    )
     try:
-        response = StealthyFetcher.fetch(url_neg, headless=True, timeout=12000)
+        response = Fetcher.get(url_neg, timeout=10)
         if response.status == 200:
-            snippets = response.css('.result__snippet::text').getall()
-            neg_snippets = [s.strip() for s in snippets if s.strip()][:5]
+            all_neg = _parse_ddg_results(response)
+            # Filter out tax lookup / business registry sites
+            neg_snippets = [
+                s for s in all_neg
+                if not any(domain in s for domain in _neutral_domains)
+            ][:5]
     except Exception as e:
         print(f"ERROR: DDG negative search failed: {e}")
-        
+
     return rec_snippets, neg_snippets
 
 
 def fetch_first_party_recruitment_snippets(internal_links: list[str]) -> list[str]:
-    from scrapling.fetchers import StealthyFetcher
+    from scrapling.fetchers import Fetcher
 
     snippets: list[str] = []
     recruitment_links = [
@@ -622,10 +697,11 @@ def fetch_first_party_recruitment_snippets(internal_links: list[str]) -> list[st
 
     for link in recruitment_links:
         try:
-            response = StealthyFetcher.fetch(link, headless=True, timeout=12000)
+            response = Fetcher.get(link, timeout=10)
             if response.status != 200:
                 continue
-            excerpt = _html_to_text_excerpt(response.text)
+            raw_html = response.html_content or response.text or ""
+            excerpt = _html_to_text_excerpt(raw_html)
             if excerpt:
                 snippets.append(f"First-party recruitment page {link}: {excerpt}")
         except Exception as e:
@@ -671,13 +747,13 @@ Website: {website or 'None'}
 LinkedIn: {linkedin_url or 'None'}
 
 --- Website Homepage Excerpt ---
-{page_excerpt}
+{page_excerpt[:2000]}
 
 --- Recruitment Evidence Snippets ---
-{json.dumps(rec_snippets, ensure_ascii=False, indent=2)}
+{json.dumps(rec_snippets[:3], ensure_ascii=False, indent=2)}
 
 --- Negative Reputation Search Snippets ---
-{json.dumps(neg_snippets, ensure_ascii=False, indent=2)}
+{json.dumps(neg_snippets[:3], ensure_ascii=False, indent=2)}
 """
     
     prompt = f"""
@@ -725,7 +801,7 @@ Return ONLY a raw JSON object (no markdown wrapping, no explanation outside JSON
     }
     
     try:
-        async with httpx.AsyncClient(timeout=45.0) as client:
+        async with httpx.AsyncClient(timeout=90.0) as client:
             response = await client.post(url, json=payload, headers=headers)
             response.raise_for_status()
             data = response.json()
@@ -762,7 +838,7 @@ Return ONLY a raw JSON object (no markdown wrapping, no explanation outside JSON
                     "Authorization": f"Bearer {settings.MINIMAX_API_KEY}",
                     "Content-Type": "application/json"
                 }
-                async with httpx.AsyncClient(timeout=45.0) as client:
+                async with httpx.AsyncClient(timeout=90.0) as client:
                     resp = await client.post(minimax_url, json=minimax_payload, headers=minimax_headers)
                     resp.raise_for_status()
                     minimax_data = resp.json()
@@ -801,11 +877,26 @@ async def run_alternative_data_assessment_task(sme_id: int) -> None:
 
         try:
             # Step 1 & 2: Crawl and search using Scrapling in a worker thread
+            _push_log(sme_id, f"🔍 Fetching website: {sme.company_website or '(không có website)'}")
             page_excerpt, internal_links, rec_snippets, neg_snippets = await anyio.to_thread.run_sync(
                 run_scraping_sync, sme.company_name, sme.company_website
             )
+            # Log meaningful content, not byte counts
+            excerpt_preview = page_excerpt[:200].replace("\n", " ").strip() if page_excerpt else ""
+            _push_log(sme_id, f"✅ Website scraped — {excerpt_preview[:180]}{'...' if len(excerpt_preview) > 180 else ''}")
+            if internal_links:
+                _push_log(sme_id, f"🔗 Internal links found: {', '.join(internal_links[:3])}")
+            if rec_snippets:
+                _push_log(sme_id, f"💼 Recruitment signals ({len(rec_snippets)}): {rec_snippets[0][:120]}...")
+            else:
+                _push_log(sme_id, "💼 No recruitment signals found on job boards")
+            if neg_snippets:
+                _push_log(sme_id, f"⚠️ Negative signals ({len(neg_snippets)}): {neg_snippets[0][:120]}...")
+            else:
+                _push_log(sme_id, "✅ No negative signals detected")
 
             # Step 3: LLM evaluation
+            _push_log(sme_id, "🤖 Sending data to LLM for analysis...")
             llm_result = await evaluate_with_llm(
                 company_name=sme.company_name,
                 website=sme.company_website,
@@ -816,6 +907,7 @@ async def run_alternative_data_assessment_task(sme_id: int) -> None:
             )
 
             if not llm_result:
+                _push_log(sme_id, "⚠️ LLM không trả kết quả — chuyển sang fallback enrichment...")
                 fallback_result = await service.enrichment_service.enrich(sme)
                 fallback_scorecard = service.scoring_service.score_enrichment(
                     fallback_result["enriched_company"]
@@ -833,6 +925,7 @@ async def run_alternative_data_assessment_task(sme_id: int) -> None:
                 assessment.error_message = None
                 assessment.last_run_at = datetime.now(timezone.utc)
                 await db.commit()
+                _push_log(sme_id, f"✅ Fallback hoàn tất — điểm: {fallback_scorecard['alternative_data_score']}/200")
 
                 invoices_result = await db.execute(
                     select(Invoice).where(Invoice.sme_id == sme_id)
@@ -842,9 +935,10 @@ async def run_alternative_data_assessment_task(sme_id: int) -> None:
                     scoring_service = ScoringService(db)
                     for invoice in invoices:
                         await scoring_service.calculate_score(invoice.id)
+                _push_log(sme_id, "__DONE__")
                 return
 
-            # Step 4: Calculate scores deterministically
+            _push_log(sme_id, f"✅ LLM analysis complete — scoring dimensions...")
             confidence_to_percent = {5: 1.0, 4: 0.8, 3: 0.5, 2: 0.3, 1: 0.1}
             breakdown = llm_result.get("confidence_breakdown", {})
 
@@ -858,6 +952,17 @@ async def run_alternative_data_assessment_task(sme_id: int) -> None:
             pv_score = round(4.0 * confidence_to_percent[pv_conf], 2)
 
             alternative_score = round(dp_score + rec_score + pv_score, 2)
+
+            dp_evidence = breakdown.get("digital_presence", {}).get("evidence", "")
+            rec_evidence = breakdown.get("recruitment_signal", {}).get("evidence", "")
+            pv_evidence = breakdown.get("public_visibility", {}).get("evidence", "")
+
+            _push_log(sme_id, f"🌐 Digital presence {dp_score}/{3.5} (conf {dp_conf}/5) — {dp_evidence[:100]}")
+            _push_log(sme_id, f"💼 Recruitment {rec_score}/{2.5} (conf {rec_conf}/5) — {rec_evidence[:100]}")
+            _push_log(sme_id, f"👁 Public visibility {pv_score}/{4.0} (conf {pv_conf}/5) — {pv_evidence[:100]}")
+            summary = llm_result.get("evidence_summary", "")
+            if summary:
+                _push_log(sme_id, f"📋 Summary: {summary[:150]}")
 
             # Gather sources
             sources = []
@@ -919,11 +1024,13 @@ async def run_alternative_data_assessment_task(sme_id: int) -> None:
             assessment.sources = sources
             assessment.public_summary = result_scorecard.get("evidence_summary", "")
             assessment.error_message = None
+            _push_log(sme_id, f"💾 Saving results — alternative data score: {int(alternative_score * 20)}/200")
 
         except Exception as exc:
             print(f"ERROR: Alternative data assessment task failed: {exc}")
             assessment.status = alt_models.AlternativeDataStatus.FAILED
             assessment.error_message = str(exc)
+            _push_log(sme_id, f"❌ Lỗi: {str(exc)}")
 
         assessment.last_run_at = datetime.now(timezone.utc)
         await db.commit()
@@ -936,11 +1043,18 @@ async def run_alternative_data_assessment_task(sme_id: int) -> None:
                 )
                 invoices = invoices_result.scalars().all()
                 if invoices:
+                    _push_log(sme_id, f"🧮 Recalculating J-Score for {len(invoices)} invoice(s)...")
                     scoring_service = ScoringService(db)
                     for invoice in invoices:
                         await scoring_service.calculate_score(invoice.id)
+                    _push_log(sme_id, "✅ J-Score updated")
             except Exception as scoring_error:
                 print(f"ERROR: Failed to recalculate J-Score for SME {sme_id}: {str(scoring_error)}")
+
+        _push_log(sme_id, "__DONE__")
+        await _flush_log_to_db(sme_id, db)
+
+        _push_log(sme_id, "__DONE__")
 
 
 

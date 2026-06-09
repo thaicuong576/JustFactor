@@ -14,6 +14,72 @@ import { formatVND } from "@/lib/format";
 import { AlternativeDataScorecard } from "@/components/AlternativeDataScorecard";
 import { AdminSmeProfileDrawer, type AdminSmeProfileView } from "@/features/admin/admin-sme-profile-drawer";
 
+function AllSmeDeleteSection({ deleteMutation, queryClient }: { deleteMutation: any; queryClient: any }) {
+    const { data: allUsers } = useQuery({
+        queryKey: ["admin-all-sme-users"],
+        queryFn: async () => {
+            const res = await apiService.getAllUsers();
+            return (res.data as any[]).filter((u: any) => u.role === "SME");
+        },
+    });
+
+    if (!allUsers || allUsers.length === 0) return null;
+    const nonActive = allUsers.filter((u: any) => !u.is_active);
+    if (nonActive.length === 0) return null;
+
+    return (
+        <div className="mt-6">
+            <Surface className="p-0">
+                <div className="border-b border-slate-200 px-6 py-4">
+                    <h3 className="text-base font-black text-slate-950">SME chưa duyệt / đã từ chối</h3>
+                    <p className="mt-1 text-sm text-slate-500">Các tài khoản pending hoặc rejected — xóa để giải phóng email.</p>
+                </div>
+                <Table>
+                    <TableHeader>
+                        <TableRow className="bg-slate-50">
+                            <TableHead>Email</TableHead>
+                            <TableHead>Trạng thái</TableHead>
+                            <TableHead>Ngày đăng ký</TableHead>
+                            <TableHead></TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {nonActive.map((u: any) => (
+                            <TableRow key={u.id}>
+                                <TableCell className="font-bold">{u.email}</TableCell>
+                                <TableCell>
+                                    <span className={`rounded px-2 py-0.5 text-xs font-bold ${u.rejection_reason ? "bg-red-100 text-red-700" : "bg-amber-100 text-amber-700"}`}>
+                                        {u.rejection_reason ? "Từ chối" : "Chờ duyệt"}
+                                    </span>
+                                </TableCell>
+                                <TableCell className="text-sm text-slate-500">
+                                    {u.created_at ? new Date(u.created_at).toLocaleDateString("vi-VN") : "—"}
+                                </TableCell>
+                                <TableCell>
+                                    <Button
+                                        size="sm"
+                                        variant="destructive"
+                                        disabled={deleteMutation.isPending}
+                                        onClick={() => {
+                                            if (confirm(`Xóa tài khoản ${u.email}?`)) {
+                                                deleteMutation.mutate(u.id, {
+                                                    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin-all-sme-users"] }),
+                                                });
+                                            }
+                                        }}
+                                    >
+                                        Xóa
+                                    </Button>
+                                </TableCell>
+                            </TableRow>
+                        ))}
+                    </TableBody>
+                </Table>
+            </Surface>
+        </div>
+    );
+}
+
 export function AdminLayoutRedesign({
     currentPage,
     onNavigate,
@@ -31,6 +97,8 @@ export function AdminLayoutRedesign({
             currentPage={currentPage}
             onNavigate={onNavigate}
             onLogout={onLogout}
+            balance="JustFactor Ops"
+            balanceLabel="Bảng điều hành"
             navItems={[
                 { id: "dashboard", label: "Tổng quan Ops", icon: LayoutDashboard },
                 { id: "users", label: "Hàng chờ KYC", icon: Users },
@@ -44,6 +112,8 @@ export function AdminLayoutRedesign({
 }
 
 export function AdminDashboardOverviewRedesign() {
+    const queryClient = useQueryClient();
+
     const { data: stats, isLoading } = useQuery({
         queryKey: ["admin-summary"],
         queryFn: async () => {
@@ -59,6 +129,22 @@ export function AdminDashboardOverviewRedesign() {
             return response.data;
         },
     });
+
+    const { mutate: deleteSme, isPending: isDeleting } = useMutation({
+        mutationFn: (userId: number) => apiService.deleteSme(userId),
+        onSuccess: () => {
+            toast.success("Đã xóa SME thành công");
+            queryClient.invalidateQueries({ queryKey: ["admin-approved-smes"] });
+            queryClient.invalidateQueries({ queryKey: ["admin-summary"] });
+        },
+        onError: () => toast.error("Xóa thất bại, vui lòng thử lại"),
+    });
+
+    const handleDeleteSme = (userId: number, companyName: string) => {
+        if (confirm(`Xác nhận xóa toàn bộ dữ liệu của "${companyName}"?\nHành động này không thể hoàn tác.`)) {
+            deleteSme(userId);
+        }
+    };
 
     const [selectedSme, setSelectedSme] = useState<AdminSmeProfileView | null>(null);
 
@@ -135,9 +221,19 @@ export function AdminDashboardOverviewRedesign() {
                                             {sme.created_at ? new Date(sme.created_at).toLocaleDateString("vi-VN") : "—"}
                                         </TableCell>
                                         <TableCell>
-                                            <Button size="sm" variant="outline" onClick={() => setSelectedSme(sme)}>
-                                                <Eye className="h-4 w-4" />
-                                            </Button>
+                                            <div className="flex items-center gap-2">
+                                                <Button size="sm" variant="outline" onClick={() => setSelectedSme(sme)}>
+                                                    <Eye className="h-4 w-4" />
+                                                </Button>
+                                                <Button
+                                                    size="sm"
+                                                    variant="destructive"
+                                                    disabled={isDeleting}
+                                                    onClick={() => handleDeleteSme(sme.id, sme.sme_profile?.company_name || sme.email)}
+                                                >
+                                                    Xóa
+                                                </Button>
+                                            </div>
                                         </TableCell>
                                     </TableRow>
                                 ))}
@@ -154,6 +250,9 @@ export function AdminDashboardOverviewRedesign() {
                 view={selectedSme}
                 mode="approved"
             />
+
+            {/* Pending SMEs that need to be deleted */}
+            <AllSmeDeleteSection deleteMutation={{ mutate: deleteSme, isPending: isDeleting }} queryClient={queryClient} />
 
             <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
                 <Surface>
@@ -464,9 +563,9 @@ function AdminStatusBadge({ status }: { status: string }) {
         PROCESSING: { label: "Đang xử lý", variant: "warning" },
         VERIFIED: { label: "Đã xác thực", variant: "success" },
         TRADING: { label: "Đang gọi vốn", variant: "default" },
-        FINANCED: { label: "Đã tài trợ", variant: "success" },
-        FUNDING_RECEIVED: { label: "Đã nhận tiền FI", variant: "warning" },
-        DISBURSED: { label: "Đã giải ngân", variant: "success" },
+        FINANCED: { label: "Chờ FI chuyển tiền", variant: "warning" },
+        FUNDING_RECEIVED: { label: "Đã nhận tiền FI — cần giải ngân", variant: "default" },
+        DISBURSED: { label: "Đã giải ngân SME", variant: "success" },
         REPAYMENT_RECEIVED: { label: "Đã nhận hoàn trả", variant: "warning" },
         CLOSED: { label: "Đã đóng", variant: "outline" },
         REJECTED: { label: "Từ chối", variant: "destructive" },

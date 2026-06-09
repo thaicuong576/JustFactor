@@ -38,6 +38,7 @@ export function FILayoutRedesign({
             onNavigate={onNavigate}
             onLogout={onLogout}
             balance="20.5B VND"
+            balanceLabel="Số dư khả dụng"
             navItems={[
                 { id: "dashboard", label: "Tổng quan vốn", icon: LayoutDashboard },
                 { id: "marketplace", label: "Sàn hóa đơn", icon: Store },

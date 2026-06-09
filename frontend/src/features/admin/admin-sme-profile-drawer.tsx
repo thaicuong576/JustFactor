@@ -1,9 +1,9 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
     Building2, FileText, Globe, Linkedin, Mail, Phone, User,
     ChevronDown, ChevronRight, ExternalLink, ShieldCheck,
-    Check, X, AlertTriangle, Eye, FileWarning
+    Check, X, AlertTriangle, Eye, FileWarning, RefreshCw
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -13,6 +13,7 @@ import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Label } from "@/components/ui/label";
 import { AlternativeDataScorecard } from "@/components/AlternativeDataScorecard";
+import { AssessmentLogStream } from "@/components/AssessmentLogStream";
 import { apiService, API_URL } from "@/services/api";
 
 /* ─────────────────── Types ─────────────────── */
@@ -294,6 +295,8 @@ interface Props {
 
 export function AdminSmeProfileDrawer({ open, onClose, view, mode, onApprove, onReject, isApproving, isRejecting }: Props) {
     const [rejectReason, setRejectReason] = useState("");
+    const [showStream, setShowStream] = useState(false);
+    const queryClient = useQueryClient();
     const smeId = view?.sme_profile?.id;
 
     const { data: alternativeData, isLoading: altLoading } = useQuery({
@@ -385,7 +388,35 @@ export function AdminSmeProfileDrawer({ open, onClose, view, mode, onApprove, on
                                             <Skeleton className="h-32 w-full" />
                                         </div>
                                     ) : (
-                                        <AlternativeDataScorecard data={alternativeData} />
+                                        <>
+                                            <div className="mb-3 flex items-center justify-between">
+                                                <span className="text-sm font-black text-slate-950">Alternative Data</span>
+                                                {smeId && (
+                                                    <Button
+                                                        size="sm"
+                                                        variant="outline"
+                                                        onClick={async () => {
+                                                            await apiService.recalculateAlternativeData(smeId!);
+                                                            setShowStream(true);
+                                                        }}
+                                                    >
+                                                        <RefreshCw className="h-3 w-3 mr-1" />
+                                                        Recalculate &amp; Stream
+                                                    </Button>
+                                                )}
+                                            </div>
+                                            {showStream && smeId && (
+                                                <div className="mb-3">
+                                                    <AssessmentLogStream
+                                                        smeId={smeId}
+                                                        onDone={() => {
+                                                            queryClient.invalidateQueries({ queryKey: ["admin-alternative-data", smeId] });
+                                                        }}
+                                                    />
+                                                </div>
+                                            )}
+                                            <AlternativeDataScorecard data={alternativeData} />
+                                        </>
                                     )}
                                 </section>
 

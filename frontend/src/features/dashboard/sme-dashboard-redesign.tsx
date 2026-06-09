@@ -1,6 +1,7 @@
-import { useState } from "react";
-import { CheckCircle2, Clock, ExternalLink, FileText, LayoutDashboard, Plus, Settings, Wallet } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
+import { useState, useEffect, useRef } from "react";
+import { CheckCircle2, Clock, ExternalLink, FileText, LayoutDashboard, Plus, Settings, Wallet, Building2, Loader2 } from "lucide-react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { ChatWidgetRedesign } from "@/features/chatbot/ChatWidgetRedesign";
@@ -12,6 +13,116 @@ import type { Invoice, User } from "@/types";
 import { EmptyState, MetricCard, PageHeader, ProductShell, Surface } from "@/components/product-shell";
 import { formatVND } from "@/lib/format";
 import { AlternativeDataScorecard } from "@/components/AlternativeDataScorecard";
+import { AssessmentLogStream } from "@/components/AssessmentLogStream";
+
+function BankAccountSection() {
+    const queryClient = useQueryClient();
+    const [adding, setAdding] = useState(false);
+    const [loading, setLoading] = useState(false);
+    const [form, setForm] = useState({ bank_code: "000000", bank_name: "", account_number: "" });
+
+    const { data: me } = useQuery({
+        queryKey: ["auth-me-bank"],
+        queryFn: async () => (await apiService.getMe()).data,
+    });
+
+    const smeId = me?.sme_profile?.id;
+    const { data: smeProfile } = useQuery({
+        queryKey: ["sme-full-profile", smeId],
+        queryFn: async () => (await apiService.getSMEFullProfile(smeId!)).data,
+        enabled: !!smeId,
+    });
+
+    const bankAccounts = smeProfile?.bank_accounts || [];
+
+    const handleAdd = async () => {
+        if (!form.bank_name || !form.account_number) {
+            toast.error("Vui lòng điền đầy đủ thông tin.");
+            return;
+        }
+        setLoading(true);
+        try {
+            await apiService.addBankAccount(form);
+            toast.success("Đã thêm tài khoản ngân hàng.");
+            setForm({ bank_code: "", bank_name: "", account_number: "" });
+            setAdding(false);
+            queryClient.invalidateQueries({ queryKey: ["sme-full-profile", smeId] });
+        } catch {
+            toast.error("Không thể thêm tài khoản. Vui lòng thử lại.");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    return (
+        <div className="space-y-4">
+            {bankAccounts.length === 0 && !adding && (
+                <div className="rounded-xl border border-dashed border-slate-200 p-4 text-center text-sm text-slate-400">
+                    Chưa có tài khoản ngân hàng. Thêm STK để nhận giải ngân.
+                </div>
+            )}
+            {bankAccounts.map((acc: any) => (
+                <div key={acc.id} className="space-y-2 rounded-xl border border-slate-200 bg-slate-50 p-4">
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <p className="font-bold text-slate-900">{acc.bank_name} — {acc.account_number}</p>
+                            <p className="text-xs text-slate-500">{acc.account_holder} {acc.is_verified ? "✅ Đã xác minh" : "⚠️ Chưa xác minh"}</p>
+                        </div>
+                        {acc.is_primary && <span className="rounded-full bg-teal-100 px-2 py-0.5 text-xs font-bold text-teal-700">Chính</span>}
+                    </div>
+                    {acc.qr_image_path ? (
+                        <div className="flex items-center gap-3">
+                            <img src={`${API_URL}/auth/files/${acc.qr_image_path}?token=${localStorage.getItem("access_token")}`} alt="QR ngân hàng" className="h-24 w-24 rounded-xl border border-slate-200 object-cover" />
+                            <label className="cursor-pointer text-xs font-bold text-teal-700 hover:underline">
+                                Đổi QR
+                                <input type="file" accept="image/*" className="hidden" onChange={async (e) => {
+                                    const file = e.target.files?.[0];
+                                    if (!file) return;
+                                    try {
+                                        await apiService.uploadBankQR(acc.id, file);
+                                        toast.success("Đã cập nhật QR");
+                                        queryClient.invalidateQueries({ queryKey: ["sme-full-profile", smeId] });
+                                    } catch { toast.error("Upload thất bại"); }
+                                }} />
+                            </label>
+                        </div>
+                    ) : (
+                        <label className="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-dashed border-slate-300 px-3 py-2 text-xs font-bold text-slate-500 hover:bg-slate-100">
+                            <Plus className="h-3 w-3" />
+                            Tải QR ngân hàng lên
+                            <input type="file" accept="image/*" className="hidden" onChange={async (e) => {
+                                const file = e.target.files?.[0];
+                                if (!file) return;
+                                try {
+                                    await apiService.uploadBankQR(acc.id, file);
+                                    toast.success("Đã tải QR lên");
+                                    queryClient.invalidateQueries({ queryKey: ["sme-full-profile", smeId] });
+                                } catch { toast.error("Upload thất bại"); }
+                            }} />
+                        </label>
+                    )}
+                </div>
+            ))}
+            {adding ? (
+                <div className="space-y-3 rounded-xl border border-slate-200 p-4">
+                    <input className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm font-bold" placeholder="Tên ngân hàng (VD: Vietcombank)" value={form.bank_name} onChange={(e) => setForm({ ...form, bank_name: e.target.value })} />
+                    <input className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm font-mono" placeholder="Số tài khoản" value={form.account_number} onChange={(e) => setForm({ ...form, account_number: e.target.value })} />
+                    <div className="flex gap-2">
+                        <Button variant="outline" size="sm" onClick={() => setAdding(false)}>Hủy</Button>
+                        <Button size="sm" onClick={handleAdd} disabled={loading}>
+                            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Lưu tài khoản"}
+                        </Button>
+                    </div>
+                </div>
+            ) : (
+                <Button variant="outline" size="sm" onClick={() => setAdding(true)}>
+                    <Plus className="h-4 w-4" />
+                    Thêm tài khoản ngân hàng
+                </Button>
+            )}
+        </div>
+    );
+}
 
 interface SMEDashboardProps {
     onLogout: () => void;
@@ -73,6 +184,7 @@ export default function SMEDashboardRedesign({ onLogout }: SMEDashboardProps) {
                 { id: "settings", label: "Hồ sơ công ty", icon: Settings },
             ]}
             balance={formatVND(stats?.credit_limit || 0)}
+            balanceLabel="Hạn mức tài trợ"
         >
             <PageHeader
                 eyebrow="JustFactor Cashflow"
@@ -105,6 +217,11 @@ export default function SMEDashboardRedesign({ onLogout }: SMEDashboardProps) {
                     )}
 
                     <div className="mb-8">
+                        {smeId && (alternativeData?.status === "PENDING" || alternativeData?.status === "PROCESSING") && (
+                            <div className="mb-4">
+                                <AssessmentLogStream smeId={smeId} />
+                            </div>
+                        )}
                         <AlternativeDataScorecard data={alternativeData} />
                     </div>
 
@@ -229,6 +346,12 @@ export default function SMEDashboardRedesign({ onLogout }: SMEDashboardProps) {
                                     <p className="text-base font-bold text-slate-900">{me.sme_profile.address || "N/A"}</p>
                                 </div>
                             </div>
+                        </Surface>
+
+                        {/* Bank Account Section */}
+                        <Surface className="p-6">
+                            <h3 className="mb-4 text-lg font-black text-slate-950">Tài khoản ngân hàng nhận giải ngân</h3>
+                            <BankAccountSection />
                         </Surface>
 
                         {/* Document Gallery */}

@@ -1,41 +1,68 @@
-# JUSTFACTOR
+# JustFactor
 
-Invoice factoring MVP for SMEs, financial institutions, and admins in Vietnam.
+**Invoice Factoring Platform for SMEs in Vietnam**
 
-## Stack
-
-- **Backend:** FastAPI, SQLAlchemy async, Alembic, PostgreSQL
-- **Frontend:** React, Vite, TypeScript, Tailwind
-- **Storage:** Supabase Storage
-- **Payments:** SePay webhook, VietQR QR generation
-- **AI:** OpenAI-compatible provider support, Gemini & MiniMax fallback
-
-## Repo Layout
-
-```text
-JustFactor/
-├── backend/
-│   ├── alembic/           # DB migrations
-│   ├── app/               # FastAPI app (modules: auth, invoice, payment, scoring, etc.)
-│   ├── tests/
-│   ├── sp.py              # Admin seed script
-│   ├── create_fi_data.py  # FI test accounts seed script
-│   ├── pyproject.toml
-│   └── .env.example
-├── frontend/
-│   ├── src/
-│   ├── package.json
-│   └── .env.example
-├── deploy/
-│   └── school-temp/       # Docker Compose deployment template for disposable VPS workspaces
-└── README.md
-```
+JustFactor is an MVP that connects SMEs, Financial Institutions (FIs), and Admins in a streamlined invoice factoring workflow — enabling businesses to unlock working capital from outstanding invoices.
 
 ---
 
-## Quick Deploy on a Fresh VPS (Disposable Workspace)
+## Screenshots
 
-This is the recommended method for demos and short-lived testing (2–3 days). Everything runs in Docker.
+### Landing & Login
+
+![Login Page](../screenshots/02-login.png)
+
+### Admin Dashboard
+
+![Admin Dashboard](../screenshots/04-admin-dashboard.png)
+
+### FI (Financial Institution) Dashboard
+
+![FI Dashboard](../screenshots/06-fi-dashboard.png)
+
+### SME Registration
+
+![SME Registration](../screenshots/08-registration.png)
+
+---
+
+## Stack
+
+| Layer | Technology |
+|-------|-----------|
+| **Backend** | FastAPI, SQLAlchemy async, Alembic, PostgreSQL |
+| **Frontend** | React, Vite, TypeScript, Tailwind CSS |
+| **Storage** | Supabase Storage (local fallback supported) |
+| **Payments** | SePay webhook, VietQR QR generation |
+| **AI / Scoring** | OpenAI-compatible, Gemini & MiniMax fallback |
+| **Infrastructure** | Docker Compose, Redis |
+
+---
+
+## Features
+
+- **SME Portal** — Upload invoices, track factoring status, receive offers
+- **FI Marketplace** — Browse available invoices, make offers, manage deals
+- **Admin Panel** — Approve/reject SME registrations, monitor platform activity
+- **AI-powered Scoring** — Alternative data assessment engine for credit risk
+- **Payment Integration** — SePay webhook + VietQR for Vietnamese payment rails
+- **Chat Assistant** — Built-in AI chatbot per role
+
+---
+
+## User Roles
+
+| Role | Description |
+|------|-------------|
+| **Admin** | Approves SME accounts, monitors the platform |
+| **FI** | Financial institutions that purchase invoices |
+| **SME** | Small businesses that sell invoices for early cash |
+
+---
+
+## Quick Deploy on a Fresh VPS
+
+Everything runs in Docker. Recommended for demos and short-lived testing (2–3 days).
 
 ### 1. Clone & scaffold
 
@@ -76,9 +103,9 @@ docker exec school-temp-2_backend_1 bash -c "cd /app/backend && python sp.py && 
 | Service | URL |
 |---------|-----|
 | **Frontend** | `http://<VPS_IP>:5173` |
-| **Backend API** | `http://<VPS_IP>:8003/docs` |
+| **Backend API Docs** | `http://<VPS_IP>:8003/docs` |
 
-### 6. Destroy everything (after demo)
+### 6. Tear down (after demo)
 
 ```bash
 ./scripts/teardown.sh
@@ -102,17 +129,16 @@ cp backend/.env.example backend/.env
 cp frontend/.env.example frontend/.env.local
 ```
 
-### Backend Setup (Poetry)
+### Backend (Poetry)
 
 ```bash
 cd backend
 poetry install
-# Start PostgreSQL & Redis manually, then:
 poetry run alembic upgrade head
 poetry run uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
 ```
 
-### Frontend Setup
+### Frontend
 
 ```bash
 cd frontend
@@ -122,15 +148,17 @@ npm run dev -- --host 127.0.0.1 --port 5173
 
 ---
 
-## Required Backend Env Values
+## Environment Variables
 
-**Minimum local dev:**
+**Minimum for local dev:**
+
 ```env
 DATABASE_URL=postgresql://admin:secret_password@localhost:5432/factoring_core
 SECRET_KEY=change-me
 ```
 
 **Optional integrations:**
+
 ```env
 SUPABASE_URL=
 SUPABASE_KEY=
@@ -158,7 +186,7 @@ MAIL_SERVER=localhost
 
 ## Test Accounts
 
-These are not created by migrations. Seed them after deployment (see step 4 above).
+Seed these after deployment (step 4 above). SME users register through the UI and require admin approval before they can log in.
 
 | Role | Email | Password |
 |------|-------|----------|
@@ -166,31 +194,32 @@ These are not created by migrations. Seed them after deployment (see step 4 abov
 | **FI (Conservative)** | `tpbank@partner.com` | `123456` |
 | **FI (Aggressive)** | `vinacapital@partner.com` | `123456` |
 
-> SME users register through the UI. New SME registrations start as **inactive** and must be approved by admin before login.
+---
+
+## Repo Layout
+
+```
+JustFactor/
+├── backend/
+│   ├── alembic/           # DB migrations
+│   ├── app/               # FastAPI app (auth, invoice, payment, scoring, …)
+│   ├── tests/
+│   ├── sp.py              # Admin seed script
+│   ├── create_fi_data.py  # FI test accounts seed script
+│   └── pyproject.toml
+├── frontend/
+│   ├── src/
+│   └── package.json
+├── deploy/
+│   └── school-temp/       # Docker Compose deployment template
+└── README.md
+```
 
 ---
 
-## Verification Checklist
+## Notes
 
-- [x] Backend boots without import errors
-- [x] Frontend loads login and SME registration screens
-- [ ] Admin login works
-- [ ] FI login works
-- [ ] SePay webhook returns HTTP 200
-- [ ] SME registration works, then admin approval enables SME login
-
----
-
-## Current Notes
-
-- SePay webhook flow is working with API key auth.
-- VietQR QR generation is usable.
-- VietQR account lookup may not work on free plans; the backend degrades safely and saves bank accounts as unverified instead of faking success.
-- Local storage fallback is supported when Supabase is not configured.
-- `fd964678fbe0` (rejection_reason migration) was a no-op in the original commit — the column is now properly added in the deployed version.
-
-## Known Gaps
-
-- VietQR account lookup is provider-plan dependent and may return unsupported/free-plan errors.
-- Poetry resolution may be inconsistent on some Windows environments.
-- A stable domain/Caddy reverse proxy setup is recommended for production demos.
+- SePay webhook flow works with API key auth.
+- VietQR QR generation is functional; account lookup may fail on free-tier plans (backend degrades gracefully).
+- Local storage fallback is active when Supabase is not configured.
+- A Caddy reverse proxy is recommended for stable domain-based production demos.

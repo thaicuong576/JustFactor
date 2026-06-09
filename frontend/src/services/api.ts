@@ -59,6 +59,7 @@ export const apiService = {
     calculateScore: (id: number) => api.post(`/scoring/calculate/${id}`),
     getAlternativeData: (smeId: number) => api.get(`/alternative-data/sme/${smeId}`),
     recalculateAlternativeData: (smeId: number) => api.post(`/alternative-data/sme/${smeId}/recalculate`),
+    deleteSme: (userId: number) => api.delete(`/sme/${userId}/admin-delete`),
 
     // Trading
     getTradingInvoices: () => api.get('/trading/marketplace'),
@@ -83,7 +84,17 @@ export const apiService = {
     approveDisbursement: (invoiceId: number) => api.post(`/payment/admin/disburse/${invoiceId}`),
     confirmFunding: (invoiceId: number) => api.post(`/payment/admin/confirm-funding/${invoiceId}`),
 
-    // Simulation (Demo)
+    // Payment / Bank accounts
+    addBankAccount: (data: { bank_code: string; bank_name: string; account_number: string }) =>
+        api.post('/payment/bank-accounts', data),
+    uploadBankQR: async (accountId: number, file: File) => {
+        const fd = new FormData();
+        fd.append('file', file);
+        return api.post(`/payment/bank-accounts/${accountId}/qr`, fd, {
+            headers: { 'Content-Type': 'multipart/form-data' }
+        });
+    },
+    getSMEFullProfile: (smeId: number) => api.get(`/sme/${smeId}/full-profile`),
     simulateFIFunding: (id: number) => api.post(`/payment/simulate/fi-fund/${id}`),
     simulatePlatformDisburse: (id: number) => api.post(`/payment/simulate/platform-disburse/${id}`),
     simulateDebtorPay: (id: number) => api.post(`/payment/simulate/debtor-pay/${id}`),

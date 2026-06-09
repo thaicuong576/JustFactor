@@ -13,14 +13,8 @@ interface ContractPreviewProps {
 
 export function ContractPreviewRedesign({ invoice, offer, onConfirm, onCancel }: ContractPreviewProps) {
     const handleDownloadPdf = () => {
-        const filePath = invoice.file_path_invoice_pdf || (invoice as any).pdf_file_path;
-        if (!filePath) {
-            alert("Không tìm thấy tệp PDF của hóa đơn này.");
-            return;
-        }
-        const cleanPath = filePath.replace(/^\/+/, "");
         const token = localStorage.getItem("access_token");
-        const url = `${API_URL}/auth/files/${cleanPath}?token=${token}`;
+        const url = `${API_URL}/trading/offers/${offer.id}/contract-preview?token=${token}`;
         window.open(url, "_blank");
     };
 

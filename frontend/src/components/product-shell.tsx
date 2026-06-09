@@ -51,6 +51,7 @@ export function ProductShell({
     children,
     roleLabel,
     balance,
+    balanceLabel,
     roleTheme = "sme",
 }: {
     navItems: NavItem[];
@@ -60,6 +61,7 @@ export function ProductShell({
     children: ReactNode;
     roleLabel?: string;
     balance?: string;
+    balanceLabel?: string;
     roleTheme?: RoleThemeType;
 }) {
     const theme = roleThemes[roleTheme];
@@ -100,7 +102,7 @@ export function ProductShell({
                     </div>
                     <div className="mt-auto p-4">
                         <div className="mb-3 rounded-2xl border border-white/10 bg-white/10 p-4">
-                            <div className="text-[11px] font-bold uppercase tracking-[0.16em] text-slate-400">Dòng vốn</div>
+                            <div className="text-[11px] font-bold uppercase tracking-[0.16em] text-slate-400">{balanceLabel || "Dòng vốn"}</div>
                             <div className="mt-2 text-lg font-black text-white">{balance || "Không gian làm việc"}</div>
                         </div>
                         <Button variant="ghost" className="w-full justify-start text-slate-300 hover:bg-red-500/10 hover:text-red-200" onClick={onLogout}>
