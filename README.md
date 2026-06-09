@@ -2,27 +2,83 @@
 
 **Invoice Factoring Platform for SMEs in Vietnam**
 
-JustFactor is an MVP that connects SMEs, Financial Institutions (FIs), and Admins in a streamlined invoice factoring workflow — enabling businesses to unlock working capital from outstanding invoices.
+JustFactor connects SMEs, Financial Institutions (FIs), and Admins in a streamlined invoice factoring workflow — enabling businesses to unlock working capital from outstanding invoices.
 
 ---
 
 ## Screenshots
 
-### Landing & Login
+### Landing
 
-![Login Page](../screenshots/02-login.png)
+![Landing](docs/screenshots/01-landing.png)
 
-### Admin Dashboard
+### Login
 
-![Admin Dashboard](../screenshots/04-admin-dashboard.png)
+![Login](docs/screenshots/02-login-form.png)
 
-### FI (Financial Institution) Dashboard
+### Admin — Dashboard
 
-![FI Dashboard](../screenshots/06-fi-dashboard.png)
+![Admin Dashboard](docs/screenshots/03-admin-dashboard.png)
+
+![Admin Dashboard (scrolled)](docs/screenshots/04-admin-dashboard-scroll.png)
+
+### Admin — SME List
+
+![Admin SME List](docs/screenshots/05-admin-sme-list.png)
+
+### Admin — Invoices
+
+![Admin Invoices](docs/screenshots/06-admin-invoices.png)
+
+### SME — Dashboard
+
+![SME Dashboard](docs/screenshots/07-sme-dashboard.png)
+
+![SME Dashboard (scrolled)](docs/screenshots/08-sme-dashboard-scroll.png)
+
+### SME — Invoice List
+
+![SME Invoices](docs/screenshots/09-sme-invoices.png)
+
+### SME — Upload Invoice
+
+![SME Upload Modal](docs/screenshots/10-sme-upload-modal.png)
+
+### SME — AI Scoring
+
+![SME Scoring](docs/screenshots/11-sme-scoring.png)
+
+### SME — Offers
+
+![SME Offers](docs/screenshots/12-sme-offers.png)
+
+### FI (TPBank) — Dashboard
+
+![FI TPBank Dashboard](docs/screenshots/13-fi-tpbank-dashboard.png)
+
+![FI TPBank Dashboard (scrolled)](docs/screenshots/14-fi-tpbank-scroll.png)
+
+### FI (TPBank) — Marketplace
+
+![FI Marketplace](docs/screenshots/15-fi-marketplace.png)
+
+### FI (TPBank) — Deals
+
+![FI Deals](docs/screenshots/16-fi-deals.png)
+
+### FI (VinaCaptial) — Dashboard
+
+![FI VinaCaptial Dashboard](docs/screenshots/17-fi-vinacapital-dashboard.png)
+
+![FI VinaCaptial Dashboard (scrolled)](docs/screenshots/18-fi-vinacapital-scroll.png)
+
+### FI (VinaCaptial) — Marketplace
+
+![FI VinaCaptial Marketplace](docs/screenshots/19-fi-vinacapital-marketplace.png)
 
 ### SME Registration
 
-![SME Registration](../screenshots/08-registration.png)
+![SME Registration](docs/screenshots/20-registration.png)
 
 ---
 
@@ -210,6 +266,8 @@ JustFactor/
 ├── frontend/
 │   ├── src/
 │   └── package.json
+├── docs/
+│   └── screenshots/       # App screenshots
 ├── deploy/
 │   └── school-temp/       # Docker Compose deployment template
 └── README.md
