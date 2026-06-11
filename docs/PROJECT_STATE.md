@@ -4,7 +4,7 @@
 
 Last updated:
 
-2026-06-04
+2026-06-11
 
 Current phase:
 
@@ -16,7 +16,7 @@ Level 1 Fast Build
 
 Status:
 
-Alternative Data Scoring is integrated into SME registration, admin/FI/SME scorecard views, and invoice credit scoring. The project is being prepared for disposable VPS deployment via the `deploy/school-temp/` Docker workspace template while local debugging continues against PostgreSQL.
+Alternative Data Scoring is integrated. Reorganized the documentation screenshot files to use descriptive names, prefixing them with [SME]/[FI]/[Admin] role indicators, and aligned the README documentation with correct color guidelines (SME = Green/Xanh lục, FI = Yellow/Vàng, Admin = Gray/Xám). The project is ready for local/VPS deployment.
 
 ## Product
 
@@ -57,6 +57,19 @@ SME registers -> provides website/LinkedIn -> alternative data scoring engine ca
 - The active test suite is focused; there is still no full browser automation test for the complete SME registration -> admin approval -> invoice upload -> FI marketplace path.
 
 ## Recent Work
+
+### 2026-06-11 - Screenshots Reorganization & Workflow Color Alignment
+
+Changed:
+
+- Renamed 15 untracked screenshots in `docs/screenshots/` to descriptive names prefixed by role types (e.g. `sme-login.png`, `fi-login.png`, `admin-ops-dashboard.png`, `fi-intermediary-payment.png`).
+- Replaced the screenshots inventory in `README.md` to reference the new clean filenames and added `[SME]`, `[FI]`, and `[Admin]` prefix indicators to all screenshot titles.
+- Updated the role-based color code descriptions: SME uses Green (Xanh lục), FI uses Yellow (Vàng), and Admin uses Gray (Xám) to match the actual UI portal skins.
+- Moved the intermediary payment gateway screenshot description from the Admin section to the FI section, renaming it to `fi-intermediary-payment.png` as it represents the payment drawer visible to FIs during funding.
+
+Verified:
+
+- Checked `git status` to ensure all 15 new screenshot files are correctly named and `README.md` paths are accurate.
 
 ### 2026-06-04 - MiniMax 2.7 Fallback Setup
 

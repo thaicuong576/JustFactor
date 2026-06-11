@@ -6,79 +6,60 @@ JustFactor connects SMEs, Financial Institutions (FIs), and Admins in a streamli
 
 ---
 
-## Screenshots
+## Application Flows & Screenshots
 
-### Landing
+The platform is divided into three distinct portals tailored to each user role, each utilizing a specific color theme:
+* 🟩 **SME Portal (JustFactor Cashflow - Xanh lục)**: SME registration, document uploading, and contract signing.
+* 🟨 **FI Portal (JustFactor Capital - Vàng)**: Bidding on invoices, viewing risk profiles, and checking alternative data.
+* ⬛ **Admin Portal (JustFactor Ops - Xám)**: Platform operations, KYC approval, invoice auditing, and transaction monitoring.
 
-![Landing](docs/screenshots/01-landing.png)
+---
 
-### Login
+### 🟩 1. SME Flow (Luồng SME - Xanh lục)
+The SME portal (**JustFactor Cashflow**) allows businesses to submit KYC, upload invoices, and sign funding agreements.
 
-![Login](docs/screenshots/02-login-form.png)
+* **[SME] - Đăng nhập (sme-login.png)**: Login page with the green theme for SME Cashflow.
+  ![SME Login](docs/screenshots/sme-login.png)
+* **[SME] - Đăng ký tài khoản & KYC (sme-kyc-registration.png)**: SME registration (Step 1/2) for uploading KYC documents (Business License, Front & Back ID, Portrait).
+  ![SME KYC Registration](docs/screenshots/sme-kyc-registration.png)
+* **[SME] - Hồ sơ doanh nghiệp (sme-profile.png)**: SME Profile for company **BYE BÉO** (MST: `6001715097`, Legal Rep: `PHAN BẢO LONG`, Address: `566 Lê Duẩn, Buôn Ma Thuột, Đắk Lắk`). Displays verified KYC status and digital presence checking.
+  ![SME Profile](docs/screenshots/sme-profile.png)
+* **[SME] - Bảng điều khiển & Chấm điểm Alternative Data (sme-dashboard.png)**: SME main dashboard showing an approved funding limit of **10.000.000.000 đ** and an AI-driven **Alternative Data** score (`103/200` score, `5.15/10` fit). Displays Digital Presence (`3.5/3.5`), Recruitment Signal (`1.25/2.5`), and Public Visibility (`0.4/4` reflecting negative reputation hits).
+  ![SME Dashboard](docs/screenshots/sme-dashboard.png)
+* **[SME] - Tải lên bộ hồ sơ hóa đơn (sme-invoice-upload.png)**: SME uploads a complete invoice document package including XML e-invoice, PDF invoice, commercial contract, and delivery notes.
+  ![SME Upload Modal](docs/screenshots/sme-invoice-upload.png)
+* **[SME] - Ký hợp đồng bao thanh toán (sme-contract-signing.png)**: SME reviews and signs the factoring contract (#JF-0000604) for `22.000 đ` with the funder `CONG TY CO PHAN VIEON`.
+  ![SME Contract Signing](docs/screenshots/sme-contract-signing.png)
 
-### Admin — Dashboard
+---
 
-![Admin Dashboard](docs/screenshots/03-admin-dashboard.png)
+### 🟨 2. FI Flow (Luồng FI - Vàng)
+The FI portal (**JustFactor Capital**) allows Financial Institutions (like TPBank and VinaCapital) to view available invoices, check risk metrics, and submit bids.
 
-![Admin Dashboard (scrolled)](docs/screenshots/04-admin-dashboard-scroll.png)
+* **[FI] - Đăng nhập (fi-login.png)**: B2B portal login with the gold/yellow theme.
+  ![FI Login](docs/screenshots/fi-login.png)
+* **[FI] - Sàn giao dịch hóa đơn (fi-marketplace.png)**: FI's trading floor showing active invoices ready for funding (e.g., Invoice #0000604 at `22.000 đ` (Grade A) and #0000426 at `275.000.000 đ` (Grade C)).
+  ![FI Marketplace](docs/screenshots/fi-marketplace.png)
+* **[FI] - Phòng giao dịch - Đánh giá rủi ro (fi-traderoom-overview.png)**: FI inspects the deal's credit score (`903` / Grade A, PD `0.0%`) alongside detailed alternative data signals.
+  ![FI Trading Room Overview](docs/screenshots/fi-traderoom-overview.png)
+* **[FI] - Phòng giao dịch - Ra giá tài trợ (fi-traderoom-bidding.png)**: FI inputs a discount rate (e.g., `12%/year`) and submits a funding offer. Displays expected interest, platform fees, and net disbursement (`21.780 đ`).
+  ![FI Bidding](docs/screenshots/fi-traderoom-bidding.png)
+* **[FI] - Cổng thanh toán trung gian & Chuyển tiền tài trợ (fi-intermediary-payment.png)**: Intermediary VietinBank payment gateway for disburse and collection operations (masked bank account and QR code for safety).
+  ![FI Intermediary Payment](docs/screenshots/fi-intermediary-payment.png)
 
-### Admin — SME List
+---
 
-![Admin SME List](docs/screenshots/05-admin-sme-list.png)
+### ⬛ 3. Admin Flow (Luồng Admin - Xám)
+The Admin portal (**JustFactor Ops**) acts as the central control room for platform verification, auditing, and ledger matching.
 
-### Admin — Invoices
-
-![Admin Invoices](docs/screenshots/06-admin-invoices.png)
-
-### SME — Dashboard
-
-![SME Dashboard](docs/screenshots/07-sme-dashboard.png)
-
-![SME Dashboard (scrolled)](docs/screenshots/08-sme-dashboard-scroll.png)
-
-### SME — Invoice List
-
-![SME Invoices](docs/screenshots/09-sme-invoices.png)
-
-### SME — Upload Invoice
-
-![SME Upload Modal](docs/screenshots/10-sme-upload-modal.png)
-
-### SME — AI Scoring
-
-![SME Scoring](docs/screenshots/11-sme-scoring.png)
-
-### SME — Offers
-
-![SME Offers](docs/screenshots/12-sme-offers.png)
-
-### FI (TPBank) — Dashboard
-
-![FI TPBank Dashboard](docs/screenshots/13-fi-tpbank-dashboard.png)
-
-![FI TPBank Dashboard (scrolled)](docs/screenshots/14-fi-tpbank-scroll.png)
-
-### FI (TPBank) — Marketplace
-
-![FI Marketplace](docs/screenshots/15-fi-marketplace.png)
-
-### FI (TPBank) — Deals
-
-![FI Deals](docs/screenshots/16-fi-deals.png)
-
-### FI (VinaCaptial) — Dashboard
-
-![FI VinaCaptial Dashboard](docs/screenshots/17-fi-vinacapital-dashboard.png)
-
-![FI VinaCaptial Dashboard (scrolled)](docs/screenshots/18-fi-vinacapital-scroll.png)
-
-### FI (VinaCaptial) — Marketplace
-
-![FI VinaCaptial Marketplace](docs/screenshots/19-fi-vinacapital-marketplace.png)
-
-### SME Registration
-
-![SME Registration](docs/screenshots/20-registration.png)
+* **[Admin] - Đăng nhập (admin-login.png)**: Operational backend login with the dark gray theme.
+  ![Admin Login](docs/screenshots/admin-login.png)
+* **[Admin] - Bảng vận hành trung tâm (admin-ops-dashboard.png)**: System overview displaying total Funded GMV (**22.000 đ**), platform fees (**220 đ**), active SMEs (2), active FIs (2), and approved businesses.
+  ![Admin Dashboard](docs/screenshots/admin-ops-dashboard.png)
+* **[Admin] - Kiểm toán và Phê duyệt hóa đơn (admin-invoice-audit.png)**: Admins review invoices and confirm funding statuses (e.g. confirming FI payment for invoice #0000604 to trigger disbursement).
+  ![Admin Invoice Audit](docs/screenshots/admin-invoice-audit.png)
+* **[Admin] - Giám sát giao dịch ngân hàng (admin-transaction-monitoring.png)**: Real-time logs of bank transfers via SePay, tracking cash-in (simulated funding) and cash-out (disbursement to SME) transactions.
+  ![Admin Transaction Monitoring](docs/screenshots/admin-transaction-monitoring.png)
 
 ---
 
