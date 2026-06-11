@@ -6,6 +6,105 @@ JustFactor connects SMEs, Financial Institutions (FIs), and Admins in a streamli
 
 ---
 
+## System Architecture & User Flow
+
+### Platform Architecture
+
+The system consists of a multi-tenant React frontend, a FastAPI backend core containing the Alternative Data Engine and Fintech Ledger modules, and a storage/database layer:
+
+```mermaid
+graph TD
+    %% Portals (Frontend)
+    subgraph Frontend [React/Vite Frontend]
+        SME_UI[SME Cashflow Portal - Green]
+        FI_UI[FI Capital Portal - Yellow]
+        Admin_UI[Admin Ops Portal - Gray]
+    end
+
+    %% API Gateway / Backend Core
+    subgraph Backend [FastAPI Backend Core]
+        API[API Router & Auth Middleware]
+        
+        subgraph AltEngine [Alternative Data Engine]
+            Scraper[Web/Social Scrapers & Search Crawlers]
+            LLM[LLM Sentiment Classifier: Kimi / MiniMax Fallback]
+            Scorer[Scorecard Generator]
+        end
+        
+        subgraph Ledger [Fintech Ledger & Payments]
+            QR[VietQR Code Generator]
+            Webhook[SePay Webhook Consumer]
+            Audit[Disbursement matching router]
+        end
+        
+        subgraph Invoices [Invoice Controller]
+            XMLParser[XML Parser / digital signatures check]
+            Contract[Contract PDF Engine]
+        end
+    end
+
+    %% Storage & DB Layer
+    subgraph Storage [Database & Storage Layer]
+        DB[(PostgreSQL Database)]
+        Cache[(Redis Cache & Task Broker)]
+        Supabase[(Supabase Storage / Local files)]
+    end
+
+    %% Connections
+    SME_UI & FI_UI & Admin_UI --> API
+    API --> AltEngine
+    API --> Ledger
+    API --> Invoices
+    
+    Scraper --> LLM --> Scorer
+    Webhook & QR --> Audit
+    XMLParser --> Contract
+    
+    AltEngine & Ledger & Invoices --> DB
+    Ledger & Invoices --> Supabase
+    API --> Cache
+```
+
+### End-to-End User Flow & Credit Scoring
+
+JustFactor employs an alternative data scoring system to assess credit risk for SMEs without formal audited histories. FIs bid on outstanding invoices in a multi-tenant flow:
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor SME as SME (Green)
+    actor Admin as Admin (Gray)
+    actor FI as FI (Yellow)
+    participant Sys as JustFactor Core Engine
+    participant AltData as Alternative Data Engine
+
+    %% Registration & KYC
+    SME->>Sys: Register & Submit KYC Docs
+    Sys->>AltData: Run Crawler (Web, Recruitment, Google News)
+    AltData-->>Sys: Calculate Scorecard (e.g. 103/200, Fit: 5.15)
+    Admin->>Sys: Review KYC & Alternative Data Score
+    Admin->>Sys: Approve SME & Set Base Credit Limit (e.g. 10B VND)
+
+    %% Invoice Upload & Listing
+    SME->>Sys: Upload Invoice Package (XML + PDF)
+    Sys->>Sys: Parse XML & Perform Auto-Validation
+    Sys->>FI: List Invoice on Marketplace (Grade A/B/C)
+
+    %% Bidding Flow
+    FI->>Sys: Inspect SME Scorecard & Bids (e.g., Yield 12%/year)
+    Sys->>SME: Notify Bid Offers
+    SME->>Sys: Select Bid & Sign Contract
+    
+    %% Settlement Flow
+    Sys->>FI: Generate Intermediary Payment QR Code
+    FI->>Sys: Transfer funds to Intermediary Account
+    Sys->>Admin: Verify Transfer via SePay Log
+    Admin->>Sys: Disburse Funds (Net Amount) to SME Bank Account
+    Sys->>SME: Credit SME Account (Factoring complete)
+```
+
+---
+
 ## Application Flows & Screenshots
 
 The platform is divided into three distinct portals tailored to each user role, each utilizing a specific color theme:
