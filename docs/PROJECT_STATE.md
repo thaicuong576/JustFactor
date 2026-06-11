@@ -66,10 +66,12 @@ Changed:
 - Replaced the screenshots inventory in `README.md` to reference the new clean filenames and added `[SME]`, `[FI]`, and `[Admin]` prefix indicators to all screenshot titles.
 - Updated the role-based color code descriptions: SME uses Green (Xanh lục), FI uses Yellow (Vàng), and Admin uses Gray (Xám) to match the actual UI portal skins.
 - Moved the intermediary payment gateway screenshot description from the Admin section to the FI section, renaming it to `fi-intermediary-payment.png` as it represents the payment drawer visible to FIs during funding.
+- Created the comprehensive product specification `docs/specs/platform_architecture_and_userflow.md` incorporating the full userflow and system architecture diagrams, with special focus on the alternative data engine and credit scoring logic.
 
 Verified:
 
 - Checked `git status` to ensure all 15 new screenshot files are correctly named and `README.md` paths are accurate.
+- Visualized and checked the Mermaid syntax for the User Flow and Platform Architecture diagrams.
 
 ### 2026-06-04 - MiniMax 2.7 Fallback Setup
 
